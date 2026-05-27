@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { registerService } from "../services/authService.js";
+import { loginService, registerService } from "../services/authService.js";
 
 
 export async function registerController(
@@ -26,4 +26,29 @@ export async function registerController(
             error: error.message
         });
     }
+    
 }
+
+
+
+export async function loginController(
+    req: Request,
+    res: Response
+){
+    try{
+
+        const {email, senha} = req.body;
+
+        const result = await loginService({
+            email,
+            senha,
+        });
+
+        return res.json(result);
+    } catch (error: any){
+        return res.status(400).json({
+            error: error.message,
+        });
+    }
+}
+

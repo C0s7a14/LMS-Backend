@@ -9,6 +9,7 @@ import testRoutes from "./routes/testRoutes.js"
 
 
 dotenv.config();
+console.log("SERVER CERTO");
 
 const app = express();
 

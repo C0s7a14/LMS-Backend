@@ -38,12 +38,19 @@ export async function findRefreshToken(
 export async function deleteRefreshToken(
     token: string
 ){
-    await pool.execute(
 
+    console.log("DELETE TOKEN:");
+    console.log(token);
+
+    if (!token) {
+        throw new Error("TOKEN UNDEFINED");
+    }
+
+    await pool.execute(
         `
-       DELETE FROM refresh_tokens
-       WHERE token = ? 
-        
+        DELETE FROM refresh_tokens
+        WHERE token = ?
         `,
+        [token]
     );
 }

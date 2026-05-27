@@ -6,7 +6,7 @@ import {
   findUserByEmail,
 } from "../repositories/userRepository.js";
 
-import { saveRefreshToken } from "../repositories/tokenRepository.js";
+import { saveRefreshToken, findRefreshToken, deleteRefreshToken } from "../repositories/tokenRepository.js";
 
 interface RegisterDTO {
   name: string;
@@ -100,4 +100,71 @@ return {
     role: user.role,
   },
 };
+
+
+
+
+}
+
+export async function refreshTokenService(
+ refreshToken:string   
+){
+    if (!refreshToken){
+        throw new Error(
+            "Refresh token obrigatorio"
+        );
+    }
+
+    const tokenExists = 
+    await findRefreshToken(refreshToken);
+
+
+    if(!tokenExists){
+        throw new Error(
+            "Refresh token invalido"
+        );
+    }
+
+
+    const decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET as string
+    ) as jwt.JwtPayload;
+
+
+    const accessToken = jwt.sign(
+        {
+            id: decoded.id,
+        },
+        process.env.JWT_SECRET as string,
+        {
+            expiresIn: "15m"
+        }
+    );
+
+    return{
+        accessToken,
+    }
+}
+
+export async function logoutService(
+  refreshToken: string
+) {
+
+  console.log("SERVICE TOKEN:");
+  console.log(refreshToken);
+
+  if (!refreshToken) {
+    throw new Error(
+      "Refresh token obrigatório"
+    );
+  }
+
+  await deleteRefreshToken(
+    refreshToken
+  );
+
+  return {
+    message: "Logout realizado",
+  };
 }

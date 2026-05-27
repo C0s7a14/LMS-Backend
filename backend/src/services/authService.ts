@@ -6,6 +6,8 @@ import {
   findUserByEmail,
 } from "../repositories/userRepository.js";
 
+import { saveRefreshToken } from "../repositories/tokenRepository.js";
+
 interface RegisterDTO {
   name: string;
   email: string;
@@ -54,24 +56,48 @@ export async function loginService(data: LoginDTO) {
     throw new Error("Senha inválida");
   }
 
-  const token = jwt.sign(
-    {
-      id: user.id,
-      role: user.role,
-    },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: "7d",
-    }
-  );
+  const accessToken = jwt.sign(
+  {
+    id: user.id,
+    role: user.role,
+  },
+  process.env.JWT_SECRET as string,
+  {
+    expiresIn: "15m",
+  }
+);
 
-  return {
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  };
+const refreshToken = jwt.sign(
+  {
+    id: user.id,
+  },
+  process.env.JWT_REFRESH_SECRET as string,
+  {
+    expiresIn: "7d",
+  }
+);
+
+const expiresAt = new Date();
+
+expiresAt.setDate(
+  expiresAt.getDate() + 7
+);
+
+await saveRefreshToken(
+  user.id,
+  refreshToken,
+  expiresAt
+);
+
+return {
+  accessToken,
+  refreshToken,
+
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  },
+};
 }

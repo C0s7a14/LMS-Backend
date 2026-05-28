@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 import authRoutes from "./routes/authRoutes.js"
 import testRoutes from "./routes/testRoutes.js"
+import passwordRoutes from "./routes/passwordRoutes.js"
 
 
 
@@ -23,6 +24,7 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/test", testRoutes);
+app.use ("/password", passwordRoutes)
 
 const PORT = process.env.PORT || 3333;
 

@@ -49,6 +49,33 @@ POST http://localhost:3000/auth/logout
 
 Objetivo: Encerrar a sessao atual e invalidar os tokens do usuario.
 
+
+
+Recuperaçao de Senha (Rotas Publicas)
+POST http://localhost:3333/password/forgot-password
+
+Objetivo: Iniciar o processo de recuperaçao de senha gerando um token seguro.
+
+Corpo da Requisiçao (JSON): Enviar o e-mail do usuario cadastrado.
+
+JSON
+{
+  "email": "usuario@exemplo.com"
+}
+Nota de Teste: Apos enviar, verifique o terminal do seu servidor. O link com o token sera exibido no console (ex: ?token=c0c549c1b1...). Copie esse valor do token para a proxima etapa.
+
+POST http://localhost:3333/password/reset-password
+
+Objetivo: Definir uma nova senha utilizando o token recebido.
+
+Corpo da Requisiçao (JSON): Enviar o token copiado do terminal e a nova senha desejada.
+
+JSON
+{
+  "token": "COLE_O_TOKEN_AQUI",
+  "newPassword": "NovaSenhaSegura123"
+}
+
 Usuario (Rota Protegida)
 GET http://localhost:3000/auth/profile
 

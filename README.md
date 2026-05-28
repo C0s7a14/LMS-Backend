@@ -15,7 +15,12 @@ Instale todos os pacotes necessarios utilizando o npm:
 npm install
 ou apenas npm i
 
-2. Iniciar o servidor
+
+2. Entrar na pasta
+cd backend
+execute o comando para entrar na pasta
+
+3. Iniciar o servidor
 Execute o comando abaixo para iniciar o servidor de desenvolvimento:
 
 Bash

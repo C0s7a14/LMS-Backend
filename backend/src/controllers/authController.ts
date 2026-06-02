@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { loginService, registerService, refreshTokenService, logoutService } from "../services/authService.js";
 
 
+
 export async function registerController(
     req: Request,
     res: Response
@@ -100,3 +101,6 @@ export async function logoutController(
 
   }
 }
+
+
+

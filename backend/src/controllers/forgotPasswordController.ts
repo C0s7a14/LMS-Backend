@@ -1,6 +1,12 @@
 import crypto from "crypto";
 import { Request, Response } from "express";
 import { pool } from "../database/connection.js";
+import { Resend } from "resend";
+
+
+  const resend = new Resend(
+    process.env.RESEND_API_KEY
+  );
 
 export async function forgotPassword(req: Request, res: Response) {
   const { email } = req.body;
@@ -32,9 +38,32 @@ export async function forgotPassword(req: Request, res: Response) {
     [user.id, token, expiresAt]
   );
 
-  console.log(
-    `Reset link: http://localhost:5173/reset-password?token=${token}`
-  );
+ await resend.emails.send({
+  from: "onboarding@resend.dev",
+
+  to: email,
+
+  subject: "Recuperação de senha",
+
+
+  html: `
+  
+  <h1>Recuperação de senha </h1>
+
+  <p>
+  Clique abaixo para redefinir sua senha
+  </p>
+  
+  <a
+  href="http://localhost:5173/reset-password?token=${token}"
+  >
+
+  Redefinir senha
+
+  </a>
+  
+  `,
+ });
 
   return res.json({ message: "Email de recuperação enviado" });
 }

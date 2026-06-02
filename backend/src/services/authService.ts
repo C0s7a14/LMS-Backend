@@ -12,7 +12,7 @@ interface RegisterDTO {
   name: string;
   email: string;
   senha: string;
-  role?: "student" | "client" | "admin";
+  role?: "student" | "cliente" | "admin";
 }
 
 export async function registerService(data: RegisterDTO) {

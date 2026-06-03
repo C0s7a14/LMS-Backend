@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 
 import authRoutes from "./routes/authRoutes.js"
+import userRoutes from "./routes/userRoutes.js"
 import testRoutes from "./routes/testRoutes.js"
 import passwordRoutes from "./routes/passwordRoutes.js"
 import deviceRoutes from "./routes/deviceRoutes.js";
@@ -24,6 +25,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/users", userRoutes)
 app.use("/test", testRoutes);
 app.use ("/password", passwordRoutes);
 app.use("/devices", deviceRoutes);

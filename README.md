@@ -1,86 +1,380 @@
-Aqui tens o código completo atualizado, sem nenhum emoji e com o teu nome no encerramento. Podes copiar e colar diretamente no teu ficheiro README.md:
-
-Markdown
-# API de Autenticaçao e Usuarios
+# API de Autenticação, Usuários e Cursos
 
 ---
 
-## Como Rodar o Projeto Localmente
+# Como Rodar o Projeto Localmente
 
-Apos baixar ou abrir o projeto na sua maquina, siga os passos abaixo no seu terminal:
+Após baixar ou abrir o projeto na sua máquina, siga os passos abaixo no terminal.
 
-### 1. Instalar as dependencias
-Instale todos os pacotes necessarios utilizando o npm:
+---
+
+## 1. Instalar as Dependências
+
+Instale todos os pacotes necessários:
+
 ```bash
 npm install
-ou apenas npm i
+```
 
+ou:
 
-2. Entrar na pasta
+```bash
+npm i
+```
+
+---
+
+## 2. Entrar na Pasta do Backend
+
+```bash
 cd backend
-execute o comando para entrar na pasta
+```
 
-3. Iniciar o servidor
-Execute o comando abaixo para iniciar o servidor de desenvolvimento:
+---
 
-Bash
+## 3. Configurar o Arquivo `.env`
+
+Crie um arquivo `.env` na raiz do backend:
+
+```env
+PORT=3333
+
+JWT_SECRET=sua_chave_jwt
+
+RESEND_API_KEY=sua_chave_resend
+
+DATABASE_HOST=localhost
+DATABASE_USER=root
+DATABASE_PASSWORD=sua_senha
+DATABASE_NAME=lms
+```
+
+---
+
+## 4. Iniciar o Servidor
+
+Execute:
+
+```bash
 npm run dev
-Testando as Rotas (Insomnia)
-A API roda localmente por padrao na porta 3000. Como as rotas utilizam o prefixo de autenticaçao, voce deve configurar as URLs completas no seu Insomnia (ou cliente HTTP de preferencia) exatamente como demonstrado abaixo:
+```
 
-Autenticaçao (Rotas Publicas)
-POST http://localhost:3000/auth/register
+O servidor iniciará em:
 
-Objetivo: Registrar um novo usuario no sistema.
+```txt
+http://localhost:3333
+```
 
-Corpo da Requisiçao (JSON): Enviar os dados cadastrais (ex: name, email, password).
+---
 
-POST http://localhost:3000/auth/login
+# Banco de Dados
 
-Objetivo: Autenticar o usuario e gerar os tokens de acesso.
+Execute o arquivo SQL do projeto para criar todas as tabelas do sistema:
 
-Corpo da Requisiçao (JSON): Enviar as credenciais de acesso (email e password).
+* users
+* cursos
+* modulos
+* aulas
+* matriculas
+* quizzes
+* certificados
+* refresh_tokens
+* password_resets
 
-POST http://localhost:3000/auth/refresh
+---
 
-Objetivo: Atualizar o token de acesso expirado utilizando um Refresh Token valido.
+# Testando as Rotas no Insomnia
 
-POST http://localhost:3000/auth/logout
+---
 
-Objetivo: Encerrar a sessao atual e invalidar os tokens do usuario.
+# Autenticação
 
+## Registrar Usuário
 
+```http
+POST http://localhost:3333/auth/register
+```
 
-Recuperaçao de Senha (Rotas Publicas)
-POST http://localhost:3333/password/forgot-password
+### Body JSON
 
-Objetivo: Iniciar o processo de recuperaçao de senha gerando um token seguro.
-
-Corpo da Requisiçao (JSON): Enviar o e-mail do usuario cadastrado.
-
-JSON
+```json
 {
-  "email": "usuario@exemplo.com"
+  "name": "Lennon",
+  "email": "lennon@gmail.com",
+  "senha": "123456",
+  "role": "admin"
 }
-Nota de Teste: Apos enviar, verifique o terminal do seu servidor. O link com o token sera exibido no console (ex: ?token=c0c549c1b1...). Copie esse valor do token para a proxima etapa.
+```
 
-POST http://localhost:3333/password/reset-password
+---
 
-Objetivo: Definir uma nova senha utilizando o token recebido.
+## Login
 
-Corpo da Requisiçao (JSON): Enviar o token copiado do terminal e a nova senha desejada.
+```http
+POST http://localhost:3333/auth/login
+```
 
-JSON
+### Body JSON
+
+```json
 {
-  "token": "COLE_O_TOKEN_AQUI",
-  "newPassword": "NovaSenhaSegura123"
+  "email": "lennon@gmail.com",
+  "senha": "123456"
 }
+```
 
-Usuario (Rota Protegida)
-GET http://localhost:3000/auth/profile
+### Resposta
 
-Objetivo: Retornar os dados do perfil do usuario atualmente autenticado.
+```json
+{
+  "accessToken": "TOKEN",
+  "refreshToken": "TOKEN",
+  "user": {
+    "id": 1,
+    "name": "Lennon",
+    "email": "lennon@gmail.com",
+    "role": "admin"
+  }
+}
+```
 
-Nota de Configuraçao: Esta rota possui uma camada de segurança (authMiddleware). Para testa-la com sucesso no Insomnia, voce deve incluir o token de acesso recebido no login (configurado na aba Auth -> Bearer Token ou diretamente nos Headers da requisiçao como Authorization: Bearer <seu_token>).
+---
 
-Feito por Lennon Costa Ferreira.
+## Refresh Token
+
+```http
+POST http://localhost:3333/auth/refresh
+```
+
+### Body JSON
+
+```json
+{
+  "refreshToken": "SEU_REFRESH_TOKEN"
+}
+```
+
+---
+
+## Logout
+
+```http
+POST http://localhost:3333/auth/logout
+```
+
+### Body JSON
+
+```json
+{
+  "refreshToken": "SEU_REFRESH_TOKEN"
+}
+```
+
+---
+
+# Recuperação de Senha com Resend
+
+---
+
+## Enviar Email de Recuperação
+
+```http
+POST http://localhost:3333/auth/forgot-password
+```
+
+### Body JSON
+
+```json
+{
+  "email": "lennon@gmail.com"
+}
+```
+
+O sistema irá:
+
+* gerar um token seguro
+* salvar no banco
+* enviar email usando Resend
+* criar link de redefinição
+
+---
+
+## Redefinir Senha
+
+```http
+POST http://localhost:3333/auth/reset-password
+```
+
+### Body JSON
+
+```json
+{
+  "token": "TOKEN_RECEBIDO_NO_EMAIL",
+  "newPassword": "NovaSenha123"
+}
+```
+
+---
+
+# CRUD de Usuários
+
+---
+
+## Listar Usuários
+
+```http
+GET http://localhost:3333/users
+```
+
+---
+
+## Buscar Usuário por ID
+
+```http
+GET http://localhost:3333/users/1
+```
+
+---
+
+## Atualizar Usuário
+
+```http
+PUT http://localhost:3333/users/1
+```
+
+### Body JSON
+
+```json
+{
+  "name": "Lennon Costa",
+  "email": "novoemail@gmail.com",
+  "senha": "123456",
+  "role": "admin"
+}
+```
+
+---
+
+## Deletar Usuário
+
+```http
+DELETE http://localhost:3333/users/1
+```
+
+---
+
+# CRUD de Cursos
+
+---
+
+## Criar Curso
+
+```http
+POST http://localhost:3333/courses
+```
+
+### Body JSON
+
+```json
+{
+  "titulo": "React Completo",
+  "descricao": "Curso completo de React",
+  "thumbnail": "https://imagem.com/thumb.png",
+  "criado_por": 1
+}
+```
+
+---
+
+## Listar Cursos
+
+```http
+GET http://localhost:3333/courses
+```
+
+---
+
+## Buscar Curso por ID
+
+```http
+GET http://localhost:3333/courses/1
+```
+
+---
+
+## Atualizar Curso
+
+```http
+PUT http://localhost:3333/courses/1
+```
+
+### Body JSON
+
+```json
+{
+  "titulo": "React Avançado",
+  "descricao": "Curso atualizado",
+  "thumbnail": "https://imagem.com/nova.png"
+}
+```
+
+---
+
+## Deletar Curso
+
+```http
+DELETE http://localhost:3333/courses/1
+```
+
+---
+
+# Tecnologias Utilizadas
+
+* Node.js
+* Express
+* TypeScript
+* MySQL
+* JWT
+* Bcrypt
+* Resend
+* React
+* Vite
+* TailwindCSS
+
+---
+
+# Estrutura do Projeto
+
+```txt
+src/
+│
+├── controllers/
+├── services/
+├── repositories/
+├── routes/
+├── middlewares/
+├── database/
+└── server.ts
+```
+
+---
+
+# Funcionalidades Implementadas
+
+* Registro de usuários
+* Login com JWT
+* Refresh Token
+* Logout
+* Recuperação de senha via email
+* Redefinição de senha
+* CRUD completo de usuários
+* CRUD completo de cursos
+* Integração com MySQL
+* Integração com Resend
+* Frontend React integrado ao backend
+
+---
+
+# Feito por
+
+Lennon Costa Ferreira

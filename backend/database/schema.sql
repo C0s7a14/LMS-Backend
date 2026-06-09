@@ -23,6 +23,29 @@ CREATE TABLE cursos (
     FOREIGN KEY (criado_por) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE curso_dispositivos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    curso_id INT NOT NULL,
+    dispositivo_id INT NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (curso_id)
+    REFERENCES cursos(id)
+    ON DELETE CASCADE,
+    FOREIGN KEY (dispositivo_id)
+    REFERENCES dispositivos(id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE dispositivos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(255) NOT NULL,
+    modelo VARCHAR(100),
+    tipo VARCHAR(100),
+    descricao TEXT,
+    imagem_url VARCHAR(500),
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 CREATE TABLE modulos (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -110,7 +133,6 @@ CREATE TABLE certificados (
     FOREIGN KEY (curso_id) REFERENCES cursos(id) ON DELETE CASCADE
 );
 
-
 CREATE TABLE refresh_tokens (
     id INT PRIMARY KEY AUTO_INCREMENT,
 
@@ -139,3 +161,9 @@ CREATE TABLE password_resets (
     REFERENCES users(id)
     ON DELETE CASCADE
 );
+
+
+SELECT * FROM users;
+
+
+SELECT * FROM password_resets;

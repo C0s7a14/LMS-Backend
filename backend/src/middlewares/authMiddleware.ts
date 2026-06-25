@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 interface TokenPayload {
   id: number;
-  role: string;
+  role: "student" | "client" | "admin";
 }
 
 export async function authMiddleware(
@@ -11,9 +11,7 @@ export async function authMiddleware(
   res: Response,
   next: NextFunction
 ) {
-
   try {
-
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -22,7 +20,15 @@ export async function authMiddleware(
       });
     }
 
-    const token = authHeader.split(" ")[1];
+    const parts = authHeader.split(" ");
+
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
+      return res.status(401).json({
+        error: "Token mal formatado",
+      });
+    }
+
+    const token = parts[1];
 
     const decoded = jwt.verify(
       token,
@@ -32,12 +38,9 @@ export async function authMiddleware(
     req.user = decoded;
 
     next();
-
   } catch (error) {
-
     return res.status(401).json({
-      error: "Token inválido",
+      error: "Token inválido ou expirado",
     });
-
   }
 }

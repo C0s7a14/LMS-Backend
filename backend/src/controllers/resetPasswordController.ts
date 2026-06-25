@@ -1,11 +1,24 @@
 import bcrypt from "bcrypt";
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { pool } from "../database/connection.js";
 
-export async function resetPassword(req: Request, res: Response) {
- 
+import { AppError } from "../middlewares/errorMiddleware.js";
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const { token, newPassword } = req.body;
+
+    if (!token) {
+      throw new AppError("Token não enviado", 400);
+    }
+
+    if (!newPassword) {
+      throw new AppError("Nova senha não enviada", 400);
+    }
 
     const [rows]: any = await pool.query(
       `SELECT * FROM password_resets WHERE token = ?`,
@@ -13,13 +26,13 @@ export async function resetPassword(req: Request, res: Response) {
     );
 
     if (rows.length === 0) {
-      return res.status(400).json({ message: "Token inválido" });
+      throw new AppError("Token inválido", 400);
     }
 
     const reset = rows[0];
 
     if (new Date(reset.expires_at) < new Date()) {
-      return res.status(400).json({ message: "Token expirado" });
+      throw new AppError("Token expirado", 400);
     }
 
     const hashed = await bcrypt.hash(newPassword, 10);
@@ -34,11 +47,10 @@ export async function resetPassword(req: Request, res: Response) {
       [reset.user_id]
     );
 
-    return res.json({ message: "Senha alterada com sucesso" });
-
+    return res.json({
+      message: "Senha alterada com sucesso",
+    });
   } catch (error) {
-   
-    console.error("Erro ao resetar senha:", error);
-    return res.status(500).json({ message: "Erro interno no servidor" });
+    next(error);
   }
 }

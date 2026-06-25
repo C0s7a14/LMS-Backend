@@ -1,106 +1,106 @@
-import { Request, Response } from "express";
-import { loginService, registerService, refreshTokenService, logoutService } from "../services/authService.js";
+import { Request, Response, NextFunction } from "express";
 
+import {
+  loginService,
+  registerService,
+  refreshTokenService,
+  logoutService,
+} from "../services/authService.js";
 
+import { AppError } from "../middlewares/errorMiddleware.js";
 
 export async function registerController(
-    req: Request,
-    res: Response
-){
-    try {
-        const { name, email, senha , role} = req.body;
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { name, email, senha, role } = req.body;
 
-        await registerService({
-            name,
-            email,
-            senha,
-            role,
-        });
-
-
-        return res.status(201).json({
-            message: "Usuário criado com sucesso"
-        });
-    
-    } catch (error: any){
-        return res.status(400).json({
-            error: error.message
-        });
+    if (!name || !email || !senha) {
+      throw new AppError("Nome, email e senha são obrigatórios", 400);
     }
-    
+
+    await registerService({
+      name,
+      email,
+      senha,
+      role,
+    });
+
+    return res.status(201).json({
+      message: "Usuário criado com sucesso",
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
-
-
 export async function loginController(
-    req: Request,
-    res: Response
-){
-    try{
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { email, senha } = req.body;
 
-        const {email, senha} = req.body;
-
-        const result = await loginService({
-            email,
-            senha,
-        });
-
-        return res.json(result);
-    } catch (error: any){
-        return res.status(400).json({
-            error: error.message,
-        });
+    if (!email || !senha) {
+      throw new AppError("Email e senha são obrigatórios", 400);
     }
+
+    const result = await loginService({
+      email,
+      senha,
+    });
+
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function refreshController(
-    req: Request,
-    res: Response
-){
-    try{
-        const {refreshToken} = req.body;
-        
-        const result = await refreshTokenService(refreshToken);
-    
-        return res.json(result);
-    } catch (error : any){
-        return res.status(401).json({
-            error: error.message,
-        });
-        }
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      throw new AppError("Refresh token não enviado", 401);
+    }
+
+    const result = await refreshTokenService(refreshToken);
+
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function logoutController(
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) {
-
-
   console.log("LOGOUT CONTROLLER");
-    
-  try {
 
+  try {
     console.log(req.body);
 
     const { refreshToken } = req.body;
 
     console.log(refreshToken);
 
-    const result =
-      await logoutService(
-        refreshToken
-      );
+    if (!refreshToken) {
+      throw new AppError("Refresh token não enviado", 400);
+    }
+
+    const result = await logoutService(refreshToken);
 
     return res.json(result);
-
-  } catch (error: any) {
-
-    return res.status(400).json({
-      error: error.message,
-    });
-
+  } catch (error) {
+    next(error);
   }
 }
-
-
-

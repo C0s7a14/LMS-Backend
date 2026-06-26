@@ -10,6 +10,7 @@ import passwordRoutes from "./routes/passwordRoutes.js"
 import deviceRoutes from "./routes/deviceRoutes.js";
 import coursesRoutes from "./routes/courseRoutes.js"
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
+import certificateRoutes from "./routes/certificateRoutes.js";
 
 dotenv.config();
 console.log("SERVER CERTO");
@@ -30,7 +31,7 @@ app.use("/test", testRoutes);
 app.use ("/password", passwordRoutes);
 app.use("/devices", deviceRoutes);
 app.use("/courses", coursesRoutes)
-
+app.use("/certificates", certificateRoutes);
 
 app.use(errorMiddleware);
 

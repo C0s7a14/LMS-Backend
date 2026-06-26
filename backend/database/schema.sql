@@ -127,11 +127,13 @@ CREATE TABLE certificados (
     id INT PRIMARY KEY AUTO_INCREMENT,
     usuario_id INT NOT NULL,
     curso_id INT NOT NULL,
+    validation_code VARCHAR(255) NOT NULL, 
     certificado_url VARCHAR(500),
     emitido_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (curso_id) REFERENCES cursos(id) ON DELETE CASCADE
 );
+
 
 CREATE TABLE refresh_tokens (
     id INT PRIMARY KEY AUTO_INCREMENT,

@@ -72,3 +72,26 @@ export async function deleteCertificateService(id: number) {
 
     return { message: `Certificado ${id} deletado com sucesso.` };
 }
+
+export async function getCertificateDetailsForPDF(id: number) {
+    const query = `
+        SELECT 
+            c.id, 
+            c.validation_code, 
+            c.emitido_em,
+            u.name AS aluno_nome, 
+            cur.titulo AS curso_titulo
+        FROM certificados c
+        JOIN users u ON c.usuario_id = u.id
+        JOIN cursos cur ON c.curso_id = cur.id
+        WHERE c.id = ?
+    `;
+    
+    const [rows]: any = await pool.query(query, [id]);
+
+    if (rows.length === 0) {
+        throw new Error("Certificado não encontrado.");
+    }
+
+    return rows[0]; // Returns a beautiful object with all the real names
+}

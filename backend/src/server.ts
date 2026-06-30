@@ -11,6 +11,7 @@ import deviceRoutes from "./routes/deviceRoutes.js";
 import coursesRoutes from "./routes/courseRoutes.js";
 import certificateRoutes from "./routes/certificateRoutes.js";
 import aulaRoutes from "./routes/aulaRoutes.js";
+import moduloRoutes from "./routes/moduloRoutes.js";
 
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 
@@ -35,6 +36,7 @@ app.use("/devices", deviceRoutes);
 app.use("/courses", coursesRoutes);
 app.use("/certificates", certificateRoutes);
 
+app.use(moduloRoutes);
 app.use(aulaRoutes);
 
 app.use(errorMiddleware);

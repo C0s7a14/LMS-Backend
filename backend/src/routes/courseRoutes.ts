@@ -8,6 +8,8 @@ import {
   updateCourseController,
 } from "../controllers/courseController.js";
 
+import { getCourseContentController } from "../controllers/courseContentController.js";
+
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { roleMiddleware } from "../middlewares/roleMiddleware.js";
 
@@ -22,6 +24,15 @@ router.get(
   roleMiddleware(["student", "admin"]),
   getCoursesController
 );
+
+/* Conteúdo completo do curso */
+router.get(
+  "/:courseId/content",
+  authMiddleware,
+  roleMiddleware(["student", "admin"]),
+  getCourseContentController
+);
+
 
 /* Aluno e admin podem visualizar um curso específico */
 router.get(
@@ -54,5 +65,6 @@ router.delete(
   roleMiddleware(["admin"]),
   deleteCourseController
 );
+
 
 export default router;

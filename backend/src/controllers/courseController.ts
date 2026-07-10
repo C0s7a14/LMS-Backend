@@ -134,8 +134,8 @@ export async function deleteCourseController(
 
     return res.json(result);
   } catch (error) {
-    handleControllerError(error, next, 400);
-  }
+  next(error);
+}
 }
 
 export async function updateCourseController(

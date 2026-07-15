@@ -13,6 +13,7 @@ import certificateRoutes from "./routes/certificateRoutes.js";
 import aulaRoutes from "./routes/aulaRoutes.js";
 import moduloRoutes from "./routes/moduloRoutes.js";
 import aiCourseRoutes from "./routes/aiCourseRoutes.js";
+import quizRoutes from "./routes/quizRoutes.js";
 
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 
@@ -40,6 +41,7 @@ app.use("/certificates", certificateRoutes);
 app.use(moduloRoutes);
 app.use(aulaRoutes);
 app.use(aiCourseRoutes);
+app.use(quizRoutes);
 
 app.use(errorMiddleware);
 

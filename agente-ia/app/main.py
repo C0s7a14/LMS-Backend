@@ -5,9 +5,13 @@ from fastapi import FastAPI, HTTPException
 from app.schemas.course_schema import GenerateCourseRequest
 from app.services.course_generator import generate_course_from_pdf_text
 
+from app.schemas.quiz_schema import GenerateQuizRequest
+from app.services.quiz_generator import generate_quiz_from_content
+
+
 app = FastAPI(
     title="Sirros Academy IA",
-    description="Agente de IA para gerar cursos, módulos e aulas a partir de PDFs.",
+    description="Agente de IA para gerar cursos, módulos, aulas e quizzes a partir de conteúdos técnicos.",
     version="1.0.0",
 )
 
@@ -53,6 +57,52 @@ def generate_course(request: GenerateCourseRequest):
 
     except Exception as error:
         print("ERRO REAL AO GERAR CURSO:")
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(error),
+        )
+
+
+@app.post("/ai/quiz/generate")
+def generate_quiz(request: GenerateQuizRequest):
+    try:
+        if not request.title.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="O título da avaliação é obrigatório",
+            )
+
+        if not request.content.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="O conteúdo base é obrigatório",
+            )
+
+        if request.totalQuestions < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="A avaliação precisa ter pelo menos uma questão",
+            )
+
+        result = generate_quiz_from_content(
+            title=request.title,
+            content=request.content,
+            quiz_type=request.quizType,
+            total_questions=request.totalQuestions,
+        )
+
+        return {
+            "message": "Quiz gerado com sucesso",
+            "quiz": result,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        print("ERRO AO GERAR QUIZ:")
         traceback.print_exc()
 
         raise HTTPException(

@@ -14,6 +14,7 @@ import aulaRoutes from "./routes/aulaRoutes.js";
 import moduloRoutes from "./routes/moduloRoutes.js";
 import aiCourseRoutes from "./routes/aiCourseRoutes.js";
 import quizRoutes from "./routes/quizRoutes.js";
+import aiQuizRoutes from "./routes/aiQuizRoutes.js";
 
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 
@@ -42,6 +43,7 @@ app.use(moduloRoutes);
 app.use(aulaRoutes);
 app.use(aiCourseRoutes);
 app.use(quizRoutes);
+app.use(aiQuizRoutes);
 
 app.use(errorMiddleware);
 

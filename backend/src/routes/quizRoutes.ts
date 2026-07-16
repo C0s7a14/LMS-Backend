@@ -8,6 +8,7 @@ import {
   getQuizByIdController,
   listCourseQuizzesController,
   submitQuizController,
+  startQuizAttemptController,
 } from "../controllers/quizController.js";
 
 const router = Router();
@@ -38,6 +39,13 @@ router.post(
   authMiddleware,
   roleMiddleware(["student", "admin"]),
   submitQuizController
+);
+
+router.post(
+  "/quizzes/:quizId/start",
+  authMiddleware,
+  roleMiddleware(["student", "admin"]),
+  startQuizAttemptController
 );
 
 export default router;

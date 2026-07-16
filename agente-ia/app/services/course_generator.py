@@ -7,6 +7,34 @@ from google.genai import types
 
 load_dotenv()
 
+def parse_ai_json_response(response_text: str):
+    if not response_text:
+        raise ValueError("A IA não retornou conteúdo")
+
+    cleaned = (
+        response_text
+        .replace("```json", "")
+        .replace("```", "")
+        .strip()
+    )
+
+    json_start = cleaned.find("{")
+
+    if json_start == -1:
+        raise ValueError("A resposta da IA não contém um JSON válido")
+
+    cleaned = cleaned[json_start:]
+
+    decoder = json.JSONDecoder()
+
+    try:
+        data, _ = decoder.raw_decode(cleaned)
+        return data
+    except json.JSONDecodeError as error:
+        print("RESPOSTA BRUTA DA IA:")
+        print(response_text)
+        raise ValueError(f"Erro ao interpretar JSON da IA: {error}")
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
@@ -84,16 +112,9 @@ Formato obrigatório:
     if not response_text:
         raise ValueError("A IA não retornou conteúdo")
 
-    try:
-        data = json.loads(response_text)
-    except json.JSONDecodeError:
-        cleaned = (
-            response_text
-            .replace("```json", "")
-            .replace("```", "")
-            .strip()
-        )
+    data = parse_ai_json_response(response_text)
 
-        data = json.loads(cleaned)
+    if "modulos" not in data or not isinstance(data["modulos"], list):
+        raise ValueError("A IA retornou um JSON sem a lista de módulos")
 
     return data

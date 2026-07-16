@@ -1,5 +1,6 @@
 import { pool } from "../database/connection.js";
 import { AppError } from "../middlewares/errorMiddleware.js";
+import type { ResultSetHeader } from "mysql2";
 
 type QuizType = "aula" | "modulo" | "prova_final";
 type QuizStatus = "rascunho" | "publicado";
@@ -31,6 +32,29 @@ interface CreateQuizDTO {
 interface SubmitAnswerDTO {
   questao_id: number;
   opcao_id: number;
+}
+
+interface QuizWithQuestions {
+  id: number;
+  curso_id: number;
+  modulo_id: number | null;
+  aula_id: number | null;
+  titulo: string;
+  tipo: QuizType;
+  nota_minima: number;
+  max_tentativas: number;
+  questoes_por_tentativa?: number;
+  sorteio_ativo?: boolean | number;
+  status: QuizStatus;
+  criado_em?: string;
+  atualizado_em?: string;
+  questoes: any[];
+}
+
+
+interface StartQuizAttemptResult {
+  tentativa_id: number;
+  quiz: QuizWithQuestions;
 }
 
 function validateQuizType(tipo: string): tipo is QuizType {
@@ -222,6 +246,67 @@ export async function createQuizService(data: CreateQuizDTO) {
   }
 }
 
+async function getOrCreateCursoTentativa(
+  usuarioId: number,
+  cursoId: number
+): Promise<number | null> {
+  const [existingRows] = await pool.query<any[]>(
+    `
+    SELECT id, status
+    FROM curso_tentativas
+    WHERE usuario_id = ?
+      AND curso_id = ?
+      AND status IN ('em_andamento', 'em_revisao')
+    ORDER BY numero_tentativa DESC
+    LIMIT 1
+    `,
+    [usuarioId, cursoId]
+  );
+
+  if (existingRows.length > 0) {
+    return existingRows[0].id;
+  }
+
+  const [lastRows] = await pool.query<any[]>(
+    `
+    SELECT numero_tentativa
+    FROM curso_tentativas
+    WHERE usuario_id = ?
+      AND curso_id = ?
+    ORDER BY numero_tentativa DESC
+    LIMIT 1
+    `,
+    [usuarioId, cursoId]
+  );
+
+  const nextAttemptNumber = lastRows.length
+    ? Number(lastRows[0].numero_tentativa) + 1
+    : 1;
+
+  if (nextAttemptNumber > 3) {
+    throw new AppError(
+      "Limite de tentativas do curso atingido. Entre em contato com o administrador.",
+      403
+    );
+  }
+
+  const [result] = await pool.query<ResultSetHeader>(
+    `
+    INSERT INTO curso_tentativas (
+      usuario_id,
+      curso_id,
+      numero_tentativa,
+      status,
+      max_tentativas
+    )
+    VALUES (?, ?, ?, 'em_andamento', 3)
+    `,
+    [usuarioId, cursoId, nextAttemptNumber]
+  );
+
+  return result.insertId;
+}
+
 export async function getQuizByIdService(
   quizId: number,
   showCorrectAnswers = false
@@ -293,6 +378,7 @@ export async function getQuizByIdService(
   };
 }
 
+
 export async function listCourseQuizzesService(courseId: number) {
   const [courseRows]: any = await pool.query(
     "SELECT id FROM cursos WHERE id = ?",
@@ -332,8 +418,13 @@ export async function listCourseQuizzesService(courseId: number) {
 export async function submitQuizService(
   quizId: number,
   userId: number,
+  tentativaId: number,
   respostas: SubmitAnswerDTO[]
 ) {
+  if (!tentativaId || Number.isNaN(Number(tentativaId))) {
+    throw new AppError("ID da tentativa é obrigatório", 400);
+  }
+
   if (!Array.isArray(respostas) || respostas.length === 0) {
     throw new AppError("Envie as respostas do quiz", 400);
   }
@@ -343,33 +434,62 @@ export async function submitQuizService(
   try {
     await connection.beginTransaction();
 
-    const [quizRows]: any = await connection.query(
-      "SELECT * FROM quizzes WHERE id = ?",
-      [quizId]
+    const [attemptRows]: any = await connection.query(
+      `
+        SELECT
+          qt.id AS tentativa_id,
+          qt.usuario_id,
+          qt.quiz_id,
+          qt.curso_tentativa_id,
+          qt.finalizado_em,
+
+          q.id,
+          q.curso_id,
+          q.titulo,
+          q.tipo,
+          q.nota_minima,
+          q.max_tentativas,
+          q.status
+        FROM quiz_tentativas qt
+        INNER JOIN quizzes q ON q.id = qt.quiz_id
+        WHERE qt.id = ?
+          AND qt.quiz_id = ?
+          AND qt.usuario_id = ?
+        LIMIT 1
+      `,
+      [tentativaId, quizId, userId]
     );
 
-    if (quizRows.length === 0) {
-      throw new AppError("Quiz não encontrado", 404);
+    if (attemptRows.length === 0) {
+      throw new AppError("Tentativa não encontrada para este usuário", 404);
     }
 
-    const quiz = quizRows[0];
+    const attempt = attemptRows[0];
 
-    if (quiz.status !== "publicado") {
+    if (attempt.status !== "publicado") {
       throw new AppError("Este quiz ainda não está publicado", 403);
     }
 
-    const [attemptRows]: any = await connection.query(
+    if (attempt.finalizado_em) {
+      throw new AppError("Esta tentativa já foi finalizada", 403);
+    }
+
+    const [finishedAttemptRows]: any = await connection.query(
       `
         SELECT COUNT(*) AS total
         FROM quiz_tentativas
-        WHERE usuario_id = ? AND quiz_id = ?
+        WHERE usuario_id = ?
+          AND quiz_id = ?
+          AND finalizado_em IS NOT NULL
       `,
       [userId, quizId]
     );
 
-    const totalTentativas = Number(attemptRows[0].total || 0);
+    const totalTentativasFinalizadas = Number(
+      finishedAttemptRows[0].total || 0
+    );
 
-    if (totalTentativas >= quiz.max_tentativas) {
+    if (totalTentativasFinalizadas >= Number(attempt.max_tentativas)) {
       throw new AppError(
         "Você atingiu o número máximo de tentativas",
         403
@@ -378,56 +498,63 @@ export async function submitQuizService(
 
     const [questionRows]: any = await connection.query(
       `
-        SELECT id
-        FROM quiz_questoes
-        WHERE quiz_id = ?
+        SELECT qq.id
+        FROM quiz_tentativa_questoes qtq
+        INNER JOIN quiz_questoes qq ON qq.id = qtq.questao_id
+        WHERE qtq.tentativa_id = ?
+          AND qq.quiz_id = ?
+        ORDER BY qtq.ordem ASC
       `,
-      [quizId]
+      [tentativaId, quizId]
     );
 
     if (questionRows.length === 0) {
-      throw new AppError("Este quiz não possui questões", 400);
+      throw new AppError(
+        "Esta tentativa não possui questões sorteadas",
+        400
+      );
     }
 
-    const questionIds = questionRows.map((questao: any) => questao.id);
-
-    const [optionRows]: any = await connection.query(
-      `
-        SELECT
-          o.id,
-          o.questao_id,
-          o.correta
-        FROM quiz_opcoes o
-        INNER JOIN quiz_questoes q ON q.id = o.questao_id
-        WHERE q.quiz_id = ?
-      `,
-      [quizId]
+    const questionIds = questionRows.map((questao: any) =>
+      Number(questao.id)
     );
 
     const respostasPorQuestao = new Map<number, number>();
 
     for (const resposta of respostas) {
-      if (respostasPorQuestao.has(resposta.questao_id)) {
+      const questaoId = Number(resposta.questao_id);
+      const opcaoId = Number(resposta.opcao_id);
+
+      if (respostasPorQuestao.has(questaoId)) {
         throw new AppError(
           "Existe questão respondida mais de uma vez",
           400
         );
       }
 
-      respostasPorQuestao.set(
-        Number(resposta.questao_id),
-        Number(resposta.opcao_id)
-      );
+      respostasPorQuestao.set(questaoId, opcaoId);
     }
 
     for (const questionId of questionIds) {
       if (!respostasPorQuestao.has(questionId)) {
         throw new AppError(
-          "Todas as questões precisam ser respondidas",
+          "Todas as questões sorteadas precisam ser respondidas",
           400
         );
       }
     }
+
+    const [optionRows]: any = await connection.query(
+      `
+        SELECT
+          id,
+          questao_id,
+          correta
+        FROM quiz_opcoes
+        WHERE questao_id IN (?)
+      `,
+      [questionIds]
+    );
 
     let totalAcertos = 0;
 
@@ -442,7 +569,7 @@ export async function submitQuizService(
 
       if (!option) {
         throw new AppError(
-          "Uma das opções enviadas não pertence à questão informada",
+          "Uma das opções enviadas não pertence à questão sorteada",
           400
         );
       }
@@ -462,32 +589,27 @@ export async function submitQuizService(
 
     const totalQuestoes = questionIds.length;
     const nota = Number(((totalAcertos / totalQuestoes) * 100).toFixed(2));
-    const aprovado = nota >= Number(quiz.nota_minima);
+    const aprovado = nota >= Number(attempt.nota_minima);
 
-    const [attemptResult]: any = await connection.query(
+    await connection.query(
       `
-        INSERT INTO quiz_tentativas (
-          usuario_id,
-          quiz_id,
-          nota,
-          total_questoes,
-          total_acertos,
-          aprovado,
-          finalizado_em
-        )
-        VALUES (?, ?, ?, ?, ?, ?, NOW())
+        UPDATE quiz_tentativas
+        SET
+          nota = ?,
+          total_questoes = ?,
+          total_acertos = ?,
+          aprovado = ?,
+          finalizado_em = NOW()
+        WHERE id = ?
       `,
       [
-        userId,
-        quizId,
         nota,
         totalQuestoes,
         totalAcertos,
         aprovado ? 1 : 0,
+        tentativaId,
       ]
     );
-
-    const tentativaId = attemptResult.insertId;
 
     for (const resposta of respostasCorrigidas) {
       await connection.query(
@@ -515,37 +637,67 @@ export async function submitQuizService(
 
     let certificadoEmitido = false;
 
-    if (quiz.tipo === "prova_final" && aprovado) {
-      const [certificateRows]: any = await connection.query(
-        `
-          SELECT id
-          FROM certificados
-          WHERE usuario_id = ? AND curso_id = ?
-          LIMIT 1
-        `,
-        [userId, quiz.curso_id]
-      );
+    if (attempt.tipo === "prova_final") {
+      if (attempt.curso_tentativa_id) {
+        if (aprovado) {
+          await connection.query(
+            `
+              UPDATE curso_tentativas
+              SET
+                status = 'aprovado',
+                nota_final = ?,
+                finalizado_em = NOW()
+              WHERE id = ?
+            `,
+            [nota, attempt.curso_tentativa_id]
+          );
+        } else {
+          await connection.query(
+            `
+              UPDATE curso_tentativas
+              SET
+                status = 'em_revisao',
+                nota_final = ?
+              WHERE id = ?
+            `,
+            [nota, attempt.curso_tentativa_id]
+          );
+        }
+      }
 
-      if (certificateRows.length === 0) {
-        await connection.query(
+      if (aprovado) {
+        const [certificateRows]: any = await connection.query(
           `
-            INSERT INTO certificados (
-              usuario_id,
-              curso_id,
-              certificado_url,
-              validation_code
-            )
-            VALUES (?, ?, ?, ?)
+            SELECT id
+            FROM certificados
+            WHERE usuario_id = ?
+              AND curso_id = ?
+            LIMIT 1
           `,
-          [
-            userId,
-            quiz.curso_id,
-            null,
-            generateValidationCode(),
-          ]
+          [userId, attempt.curso_id]
         );
 
-        certificadoEmitido = true;
+        if (certificateRows.length === 0) {
+          await connection.query(
+            `
+              INSERT INTO certificados (
+                usuario_id,
+                curso_id,
+                certificado_url,
+                validation_code
+              )
+              VALUES (?, ?, ?, ?)
+            `,
+            [
+              userId,
+              attempt.curso_id,
+              null,
+              generateValidationCode(),
+            ]
+          );
+
+          certificadoEmitido = true;
+        }
       }
     }
 
@@ -560,12 +712,12 @@ export async function submitQuizService(
         quiz_id: quizId,
         usuario_id: userId,
         nota,
-        nota_minima: Number(quiz.nota_minima),
+        nota_minima: Number(attempt.nota_minima),
         total_questoes: totalQuestoes,
         total_acertos: totalAcertos,
         aprovado,
-        tentativas_usadas: totalTentativas + 1,
-        max_tentativas: quiz.max_tentativas,
+        tentativas_usadas: totalTentativasFinalizadas + 1,
+        max_tentativas: Number(attempt.max_tentativas),
         certificado_emitido: certificadoEmitido,
       },
     };
@@ -575,4 +727,277 @@ export async function submitQuizService(
   } finally {
     connection.release();
   }
+}
+
+export async function startQuizAttemptService(
+  quizId: number,
+  userId: number
+): Promise<StartQuizAttemptResult> {
+  const [quizRows] = await pool.query<any[]>(
+    `
+    SELECT 
+      id,
+      curso_id,
+      modulo_id,
+      aula_id,
+      titulo,
+      tipo,
+      nota_minima,
+      max_tentativas,
+      questoes_por_tentativa,
+      sorteio_ativo,
+      status
+    FROM quizzes
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [quizId]
+  );
+
+  if (quizRows.length === 0) {
+    throw new AppError("Quiz não encontrado", 404);
+  }
+
+  const quiz = quizRows[0];
+
+  if (quiz.status !== "publicado") {
+    throw new AppError("Esta avaliação ainda não está publicada", 403);
+  }
+
+  if (quiz.tipo === "prova_final") {
+    const [courseAttemptRows]: any = await pool.query(
+      `
+      SELECT 
+        id,
+        status,
+        numero_tentativa,
+        max_tentativas
+      FROM curso_tentativas
+      WHERE usuario_id = ?
+        AND curso_id = ?
+      ORDER BY numero_tentativa DESC
+      LIMIT 1
+      `,
+      [userId, quiz.curso_id]
+    );
+
+    const latestCourseAttempt = courseAttemptRows[0];
+
+    if (latestCourseAttempt?.status === "aprovado") {
+      throw new AppError(
+        "Este curso já foi aprovado. O certificado já está disponível.",
+        409
+      );
+    }
+
+    if (latestCourseAttempt?.status === "em_revisao") {
+      throw new AppError(
+        "Você precisa revisar o curso antes de fazer uma nova tentativa da prova final.",
+        403
+      );
+    }
+
+    if (
+      latestCourseAttempt?.status === "bloqueado" ||
+      latestCourseAttempt?.status === "reprovado"
+    ) {
+      throw new AppError(
+        "Você atingiu o limite de tentativas da prova final.",
+        403
+      );
+    }
+  }
+
+  const [attemptRows] = await pool.query<any[]>(
+    `
+    SELECT COUNT(*) AS total
+    FROM quiz_tentativas
+    WHERE usuario_id = ?
+      AND quiz_id = ?
+      AND finalizado_em IS NOT NULL
+    `,
+    [userId, quizId]
+  );
+
+  const totalTentativas = Number(attemptRows[0].total || 0);
+
+  if (totalTentativas >= Number(quiz.max_tentativas)) {
+    throw new AppError("Você atingiu o número máximo de tentativas", 403);
+  }
+
+  const [openAttemptRows] = await pool.query<any[]>(
+    `
+    SELECT id
+    FROM quiz_tentativas
+    WHERE usuario_id = ?
+      AND quiz_id = ?
+      AND finalizado_em IS NULL
+    ORDER BY iniciado_em DESC
+    LIMIT 1
+    `,
+    [userId, quizId]
+  );
+
+  if (openAttemptRows.length > 0) {
+    const tentativaId = Number(openAttemptRows[0].id);
+
+    const quizWithQuestions = await getQuizAttemptQuestions(
+      quizId,
+      tentativaId,
+      false
+    );
+
+    return {
+      tentativa_id: tentativaId,
+      quiz: quizWithQuestions,
+    };
+  }
+
+  const cursoTentativaId = await getOrCreateCursoTentativa(
+    userId,
+    Number(quiz.curso_id)
+  );
+
+  const [questionRows] = await pool.query<any[]>(
+    `
+    SELECT id
+    FROM quiz_questoes
+    WHERE quiz_id = ?
+    ORDER BY 
+      CASE WHEN ? = TRUE THEN RAND() ELSE ordem END
+    LIMIT ?
+    `,
+    [
+      quizId,
+      Boolean(quiz.sorteio_ativo),
+      Number(quiz.questoes_por_tentativa || 5),
+    ]
+  );
+
+  if (questionRows.length === 0) {
+    throw new AppError("Este quiz não possui questões cadastradas", 400);
+  }
+
+  const [attemptResult] = await pool.query<ResultSetHeader>(
+    `
+    INSERT INTO quiz_tentativas (
+      usuario_id,
+      quiz_id,
+      curso_tentativa_id,
+      nota,
+      total_questoes,
+      total_acertos,
+      aprovado
+    )
+    VALUES (?, ?, ?, 0, ?, 0, FALSE)
+    `,
+    [userId, quizId, cursoTentativaId, questionRows.length]
+  );
+
+  const tentativaId = attemptResult.insertId;
+
+  for (let index = 0; index < questionRows.length; index++) {
+    await pool.query(
+      `
+      INSERT INTO quiz_tentativa_questoes (
+        tentativa_id,
+        questao_id,
+        ordem
+      )
+      VALUES (?, ?, ?)
+      `,
+      [tentativaId, questionRows[index].id, index + 1]
+    );
+  }
+
+  const quizWithQuestions = await getQuizAttemptQuestions(
+    quizId,
+    tentativaId,
+    false
+  );
+
+  return {
+    tentativa_id: tentativaId,
+    quiz: quizWithQuestions,
+  };
+}
+
+async function getQuizAttemptQuestions(
+  quizId: number,
+  tentativaId: number,
+  showCorrectAnswers = false
+): Promise<QuizWithQuestions> {
+  const [quizRows] = await pool.query<any[]>(
+    `
+    SELECT 
+      id,
+      curso_id,
+      modulo_id,
+      aula_id,
+      titulo,
+      tipo,
+      nota_minima,
+      max_tentativas,
+      questoes_por_tentativa,
+      sorteio_ativo,
+      status,
+      criado_em,
+      atualizado_em
+    FROM quizzes
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [quizId]
+  );
+
+  if (quizRows.length === 0) {
+    throw new AppError("Quiz não encontrado", 404);
+  }
+
+  const quiz = quizRows[0];
+
+  const [questionRows] = await pool.query<any[]>(
+    `
+    SELECT 
+      qq.id,
+      qq.quiz_id,
+      qq.pergunta,
+      qq.explicacao,
+      qtq.ordem,
+      qq.criado_em
+    FROM quiz_tentativa_questoes qtq
+    INNER JOIN quiz_questoes qq ON qq.id = qtq.questao_id
+    WHERE qtq.tentativa_id = ?
+    ORDER BY qtq.ordem ASC
+    `,
+    [tentativaId]
+  );
+
+  const questionsWithOptions = await Promise.all(
+    questionRows.map(async (question) => {
+      const [optionRows] = await pool.query<any[]>(
+        `
+        SELECT 
+          id,
+          questao_id,
+          texto_opcao
+          ${showCorrectAnswers ? ", correta" : ""}
+        FROM quiz_opcoes
+        WHERE questao_id = ?
+        ORDER BY id ASC
+        `,
+        [question.id]
+      );
+
+      return {
+        ...question,
+        opcoes: optionRows,
+      };
+    })
+  );
+
+  return {
+    ...quiz,
+    questoes: questionsWithOptions,
+  };
 }

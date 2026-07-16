@@ -29,8 +29,8 @@ export async function createCourseService(data: CreateCoursesDTO) {
   };
 }
 
-export async function getCoursesService() {
-  return await getCoursesRepository();
+export async function getCoursesService(userId: number, userRole: string) {
+  return await getCoursesRepository(userId, userRole);
 }
 
 export async function getCoursesByIdService(id: number) {

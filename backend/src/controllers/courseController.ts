@@ -77,8 +77,15 @@ export async function getCoursesController(
   next: NextFunction
 ) {
   try {
-    const courses =
-      await getCoursesService();
+    const user = (req as any).user;
+    const userId = Number(user?.id || user?.userId);
+    const userRole = String(user?.role || "");
+
+    if (!userId || Number.isNaN(userId)) {
+      throw new AppError("Usuário autenticado não identificado", 401);
+    }
+
+    const courses = await getCoursesService(userId, userRole);
 
     return res.json(courses);
   } catch (error) {

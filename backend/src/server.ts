@@ -17,6 +17,10 @@ import quizRoutes from "./routes/quizRoutes.js";
 import aiQuizRoutes from "./routes/aiQuizRoutes.js";
 import aiAssessmentRoutes from "./routes/aiAssessmentRoutes.js";
 import courseReviewRoutes from "./routes/courseReviewRoutes.js";
+import studentHomeRoutes from "./routes/studentHomeRoutes.js";
+import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
+
+
 
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 
@@ -48,6 +52,8 @@ app.use(quizRoutes);
 app.use(aiQuizRoutes);
 app.use(aiAssessmentRoutes);
 app.use(courseReviewRoutes);
+app.use(studentHomeRoutes);
+app.use(adminDashboardRoutes);
 
 app.use(errorMiddleware);
 

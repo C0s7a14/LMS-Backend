@@ -19,6 +19,8 @@ import aiAssessmentRoutes from "./routes/aiAssessmentRoutes.js";
 import courseReviewRoutes from "./routes/courseReviewRoutes.js";
 import studentHomeRoutes from "./routes/studentHomeRoutes.js";
 import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
+import aiKnowledgeRoutes from "./routes/aiKnowledgeRoutes.js";
+import aiChatRoutes from "./routes/aiChatRoutes.js";
 
 
 
@@ -54,6 +56,8 @@ app.use(aiAssessmentRoutes);
 app.use(courseReviewRoutes);
 app.use(studentHomeRoutes);
 app.use(adminDashboardRoutes);
+app.use(aiKnowledgeRoutes);
+app.use(aiChatRoutes);
 
 app.use(errorMiddleware);
 

@@ -8,12 +8,16 @@ from app.services.course_generator import generate_course_from_pdf_text
 from app.schemas.quiz_schema import GenerateQuizRequest
 from app.services.quiz_generator import generate_quiz_from_content
 
+from app.routes.ai_chat_routes import router as ai_chat_router
+
 
 app = FastAPI(
     title="Sirros Academy IA",
-    description="Agente de IA para gerar cursos, módulos, aulas e quizzes a partir de conteúdos técnicos.",
+    description="Agente de IA para gerar cursos, módulos, aulas, quizzes e responder dúvidas técnicas.",
     version="1.0.0",
 )
+
+app.include_router(ai_chat_router)
 
 
 @app.get("/")

@@ -23,6 +23,7 @@ import aiKnowledgeRoutes from "./routes/aiKnowledgeRoutes.js";
 import aiChatRoutes from "./routes/aiChatRoutes.js";
 import clientDeviceRoutes from "./routes/clientDeviceRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
+import adminCourseStatusRoutes from "./routes/adminCourseStatusRoutes.js";
 
 
 
@@ -62,6 +63,7 @@ app.use(aiKnowledgeRoutes);
 app.use(aiChatRoutes);
 app.use(clientDeviceRoutes);
 app.use(adminUserRoutes);
+app.use(adminCourseStatusRoutes);
 
 app.use(errorMiddleware);
 

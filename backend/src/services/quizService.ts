@@ -17,6 +17,16 @@ interface QuizQuestionDTO {
   opcoes: QuizOptionDTO[];
 }
 
+interface UpdateQuizDTO {
+  titulo?: string;
+  nota_minima?: number;
+  max_tentativas?: number;
+  questoes_por_tentativa?: number;
+  sorteio_ativo?: boolean;
+  status?: QuizStatus;
+  questoes?: QuizQuestionDTO[];
+}
+
 interface CreateQuizDTO {
   curso_id: number;
   modulo_id?: number | null;
@@ -25,6 +35,8 @@ interface CreateQuizDTO {
   tipo: QuizType;
   nota_minima?: number;
   max_tentativas?: number;
+  questoes_por_tentativa?: number;
+  sorteio_ativo?: boolean;
   status?: QuizStatus;
   questoes: QuizQuestionDTO[];
 }
@@ -64,6 +76,47 @@ function validateQuizType(tipo: string): tipo is QuizType {
     tipo === "prova_final"
   );
 }
+
+function validateQuizStatus(status: string): status is QuizStatus {
+  return status === "rascunho" || status === "publicado";
+}
+
+function validateQuizQuestions(questoes: QuizQuestionDTO[]) {
+  if (!Array.isArray(questoes) || questoes.length === 0) {
+    throw new AppError("O quiz precisa ter pelo menos uma questão", 400);
+  }
+
+  for (const questao of questoes) {
+    if (!questao.pergunta?.trim()) {
+      throw new AppError("Todas as questões precisam ter pergunta", 400);
+    }
+
+    if (!Array.isArray(questao.opcoes) || questao.opcoes.length < 2) {
+      throw new AppError(
+        "Cada questão precisa ter pelo menos duas opções",
+        400
+      );
+    }
+
+    const correctOptions = questao.opcoes.filter(
+      (opcao) => opcao.correta === true
+    );
+
+    if (correctOptions.length !== 1) {
+      throw new AppError(
+        "Cada questão precisa ter exatamente uma alternativa correta",
+        400
+      );
+    }
+
+    for (const opcao of questao.opcoes) {
+      if (!opcao.texto_opcao?.trim()) {
+        throw new AppError("Todas as opções precisam ter texto", 400);
+      }
+    }
+  }
+}
+
 
 function generateValidationCode() {
   return `SIRROS-${Date.now()}-${Math.random()
@@ -140,17 +193,19 @@ export async function createQuizService(data: CreateQuizDTO) {
 
     const [quizResult]: any = await connection.query(
       `
-        INSERT INTO quizzes (
-          curso_id,
-          modulo_id,
-          aula_id,
-          titulo,
-          tipo,
-          nota_minima,
-          max_tentativas,
-          status
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     INSERT INTO quizzes (
+        curso_id,
+        modulo_id,
+        aula_id,
+        titulo,
+        tipo,
+        nota_minima,
+        max_tentativas,
+        questoes_por_tentativa,
+        sorteio_ativo,
+        status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.curso_id,
@@ -160,6 +215,8 @@ export async function createQuizService(data: CreateQuizDTO) {
         data.tipo,
         data.nota_minima || 70,
         data.max_tentativas || 3,
+        data.questoes_por_tentativa || data.questoes.length,
+        data.sorteio_ativo ? 1 : 0,
         data.status || "rascunho",
       ]
     );
@@ -237,6 +294,307 @@ export async function createQuizService(data: CreateQuizDTO) {
     return {
       message: "Quiz criado com sucesso",
       quiz_id: quizId,
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updateQuizService(quizId: number, data: UpdateQuizDTO) {
+  if (!quizId || Number.isNaN(Number(quizId))) {
+    throw new AppError("Quiz inválido", 400);
+  }
+
+  if (!data.titulo?.trim()) {
+    throw new AppError("O título do quiz é obrigatório", 400);
+  }
+
+  if (data.status && !validateQuizStatus(data.status)) {
+    throw new AppError("Status do quiz inválido", 400);
+  }
+
+  if (!data.questoes) {
+    throw new AppError("Envie as questões do quiz", 400);
+  }
+
+  validateQuizQuestions(data.questoes);
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [quizRows]: any = await connection.query(
+      `
+        SELECT *
+        FROM quizzes
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [quizId]
+    );
+
+    if (quizRows.length === 0) {
+      throw new AppError("Quiz não encontrado", 404);
+    }
+
+    const quiz = quizRows[0];
+
+    const [attemptRows]: any = await connection.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM quiz_tentativas
+        WHERE quiz_id = ?
+      `,
+      [quizId]
+    );
+
+    if (Number(attemptRows[0].total || 0) > 0) {
+      throw new AppError(
+        "Não é possível editar um quiz que já possui tentativas registradas.",
+        400
+      );
+    }
+
+    const notaMinima =
+      data.nota_minima !== undefined
+        ? Number(data.nota_minima)
+        : Number(quiz.nota_minima || 70);
+
+    const maxTentativas =
+      data.max_tentativas !== undefined
+        ? Number(data.max_tentativas)
+        : Number(quiz.max_tentativas || 3);
+
+    const questoesPorTentativa =
+      data.questoes_por_tentativa !== undefined
+        ? Number(data.questoes_por_tentativa)
+        : Number(quiz.questoes_por_tentativa || data.questoes.length);
+
+    const sorteioAtivo =
+      data.sorteio_ativo === undefined
+        ? Number(quiz.sorteio_ativo || 0)
+        : data.sorteio_ativo
+        ? 1
+        : 0;
+
+    if (notaMinima < 0 || notaMinima > 100) {
+      throw new AppError("A nota mínima precisa estar entre 0 e 100", 400);
+    }
+
+    if (maxTentativas < 1) {
+      throw new AppError("O máximo de tentativas precisa ser pelo menos 1", 400);
+    }
+
+    if (questoesPorTentativa < 1) {
+      throw new AppError(
+        "A quantidade de questões por tentativa precisa ser pelo menos 1",
+        400
+      );
+    }
+
+    await connection.query(
+      `
+        UPDATE quizzes
+        SET
+          titulo = ?,
+          nota_minima = ?,
+          max_tentativas = ?,
+          questoes_por_tentativa = ?,
+          sorteio_ativo = ?,
+          status = ?
+        WHERE id = ?
+      `,
+      [
+        data.titulo.trim(),
+        notaMinima,
+        maxTentativas,
+        questoesPorTentativa,
+        sorteioAtivo,
+        data.status || quiz.status || "rascunho",
+        quizId,
+      ]
+    );
+
+    const [oldQuestionRows]: any = await connection.query(
+      `
+        SELECT id
+        FROM quiz_questoes
+        WHERE quiz_id = ?
+      `,
+      [quizId]
+    );
+
+    const oldQuestionIds = oldQuestionRows.map((question: any) => question.id);
+
+    if (oldQuestionIds.length > 0) {
+      await connection.query(
+        `
+          DELETE FROM quiz_opcoes
+          WHERE questao_id IN (?)
+        `,
+        [oldQuestionIds]
+      );
+    }
+
+    await connection.query(
+      `
+        DELETE FROM quiz_questoes
+        WHERE quiz_id = ?
+      `,
+      [quizId]
+    );
+
+    for (const [questionIndex, questao] of data.questoes.entries()) {
+      const [questionResult]: any = await connection.query(
+        `
+          INSERT INTO quiz_questoes (
+            quiz_id,
+            pergunta,
+            explicacao,
+            ordem
+          )
+          VALUES (?, ?, ?, ?)
+        `,
+        [
+          quizId,
+          questao.pergunta.trim(),
+          questao.explicacao || null,
+          questao.ordem || questionIndex + 1,
+        ]
+      );
+
+      const questaoId = questionResult.insertId;
+
+      for (const opcao of questao.opcoes) {
+        await connection.query(
+          `
+            INSERT INTO quiz_opcoes (
+              questao_id,
+              texto_opcao,
+              correta
+            )
+            VALUES (?, ?, ?)
+          `,
+          [
+            questaoId,
+            opcao.texto_opcao.trim(),
+            opcao.correta ? 1 : 0,
+          ]
+        );
+      }
+    }
+
+    await connection.commit();
+
+    return {
+      message: "Quiz atualizado com sucesso",
+      quiz_id: quizId,
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function deleteQuizService(quizId: number) {
+  if (!quizId || Number.isNaN(Number(quizId))) {
+    throw new AppError("Quiz inválido", 400);
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [quizRows]: any = await connection.query(
+      `
+        SELECT id
+        FROM quizzes
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [quizId]
+    );
+
+    if (quizRows.length === 0) {
+      throw new AppError("Quiz não encontrado", 404);
+    }
+
+    const [questionRows]: any = await connection.query(
+      `
+        SELECT id
+        FROM quiz_questoes
+        WHERE quiz_id = ?
+      `,
+      [quizId]
+    );
+
+    const questionIds = questionRows.map((question: any) => question.id);
+
+    await connection.query(
+      `
+        DELETE FROM respostas_quiz
+        WHERE quiz_id = ?
+      `,
+      [quizId]
+    );
+
+    await connection.query(
+      `
+        DELETE FROM quiz_tentativa_questoes
+        WHERE tentativa_id IN (
+          SELECT id
+          FROM quiz_tentativas
+          WHERE quiz_id = ?
+        )
+      `,
+      [quizId]
+    );
+
+    await connection.query(
+      `
+        DELETE FROM quiz_tentativas
+        WHERE quiz_id = ?
+      `,
+      [quizId]
+    );
+
+    if (questionIds.length > 0) {
+      await connection.query(
+        `
+          DELETE FROM quiz_opcoes
+          WHERE questao_id IN (?)
+        `,
+        [questionIds]
+      );
+    }
+
+    await connection.query(
+      `
+        DELETE FROM quiz_questoes
+        WHERE quiz_id = ?
+      `,
+      [quizId]
+    );
+
+    await connection.query(
+      `
+        DELETE FROM quizzes
+        WHERE id = ?
+      `,
+      [quizId]
+    );
+
+    await connection.commit();
+
+    return {
+      message: "Quiz excluído com sucesso",
     };
   } catch (error) {
     await connection.rollback();
@@ -391,18 +749,20 @@ export async function listCourseQuizzesService(courseId: number) {
 
   const [quizRows]: any = await pool.query(
     `
-      SELECT
-        q.id,
-        q.curso_id,
-        q.modulo_id,
-        q.aula_id,
-        q.titulo,
-        q.tipo,
-        q.nota_minima,
-        q.max_tentativas,
-        q.status,
-        q.criado_em,
-        COUNT(qq.id) AS total_questoes
+     SELECT
+  q.id,
+  q.curso_id,
+  q.modulo_id,
+  q.aula_id,
+  q.titulo,
+  q.tipo,
+  q.nota_minima,
+  q.max_tentativas,
+  q.questoes_por_tentativa,
+  q.sorteio_ativo,
+  q.status,
+  q.criado_em,
+  COUNT(qq.id) AS total_questoes
       FROM quizzes q
       LEFT JOIN quiz_questoes qq ON qq.quiz_id = q.id
       WHERE q.curso_id = ?
@@ -1001,3 +1361,4 @@ async function getQuizAttemptQuestions(
     questoes: questionsWithOptions,
   };
 }
+

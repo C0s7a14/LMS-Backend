@@ -12,6 +12,8 @@ getQuizByIdService,
 listCourseQuizzesService,
 submitQuizService,
 startQuizAttemptService,
+updateQuizService,
+deleteQuizService,
 } from "../services/quizService.js";
 
 export async function createQuizController(
@@ -131,6 +133,46 @@ export async function startQuizAttemptController(
     const result = await startQuizAttemptService(Number(quizId), userId);
 
     return res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateQuizController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { quizId } = req.params;
+
+    if (!quizId || Number.isNaN(Number(quizId))) {
+      throw new AppError("ID do quiz inválido", 400);
+    }
+
+    const result = await updateQuizService(Number(quizId), req.body);
+
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteQuizController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { quizId } = req.params;
+
+    if (!quizId || Number.isNaN(Number(quizId))) {
+      throw new AppError("ID do quiz inválido", 400);
+    }
+
+    const result = await deleteQuizService(Number(quizId));
+
+    return res.json(result);
   } catch (error) {
     next(error);
   }

@@ -1,469 +1,592 @@
-# Sirros Academy - Plataforma de Treinamento Técnico IoT
+# Sirros Academy - Backend
 
-A **Sirros Academy** é uma plataforma web de treinamento técnico voltada para capacitação de usuários, operadores e clientes que utilizam dispositivos IoT da Sirros.
+Backend da **Sirros Academy**, uma plataforma de treinamento técnico voltada para dispositivos IoT da Sirros.
 
-O sistema permite a criação de cursos, organização por módulos e aulas, acompanhamento de progresso, aplicação de quizzes e prova final, emissão de certificados e controle de acesso por tipo de usuário.
-
----
-
-## Sobre o Projeto
-
-A plataforma foi desenvolvida com o objetivo de facilitar o treinamento técnico de dispositivos IoT, reduzindo a necessidade de treinamentos presenciais e centralizando conteúdos, avaliações e certificados em um único ambiente digital.
-
-O sistema possui três perfis principais:
-
-- **Admin**: gerencia cursos, usuários, dispositivos, avaliações e conteúdos.
-- **Student**: acessa cursos publicados, conclui aulas, responde quizzes, realiza prova final e obtém certificados.
-- **Client**: acessa dispositivos e materiais técnicos vinculados.
-
----
-
-## Funcionalidades Principais
-
-### Autenticação e Usuários
-
-- Cadastro de usuários
-- Login com JWT
-- Refresh token
-- Logout
-- Recuperação de senha por e-mail
-- Redefinição de senha
-- Controle de acesso por perfil
-- Gerenciamento de usuários pelo administrador
-
----
-
-### Cursos
-
-- Criação de cursos
-- Edição de cursos
-- Exclusão controlada de cursos
-- Status de publicação:
-  - `rascunho`
-  - `publicado`
-  - `arquivado`
-- Alunos visualizam apenas cursos publicados
-- Administradores visualizam cursos publicados, rascunhos e arquivados
-- Listagem de cursos com progresso individual por aluno
-- Exibição automática da imagem do dispositivo como capa do curso quando o curso não possui thumbnail própria
-
----
-
-### Módulos e Aulas
-
-- Cursos organizados por módulos
-- Módulos compostos por aulas
-- Controle de aulas concluídas
-- Progresso individual por aluno
-- Bloqueio sequencial de aulas
-- Exibição de conteúdo textual, vídeo e material complementar
-
----
-
-### Dispositivos
-
-- Cadastro de dispositivos IoT
-- Armazenamento de informações técnicas
-- Imagem do dispositivo
-- Vinculação de dispositivos a cursos
-- Uso da imagem do dispositivo como capa automática do curso
-
----
-
-### Quizzes e Avaliações
-
-- Quiz por módulo
-- Prova final do curso
-- Perguntas com alternativas
-- Alternativa correta
-- Nota mínima
-- Número máximo de tentativas
-- Correção automática
-- Controle de tentativas
-- Sorteio de questões por tentativa
-
----
-
-### Fluxo de Revisão
-
-Quando o aluno não atinge a nota mínima na prova final:
-
-1. O curso entra em status de revisão.
-2. A prova final fica bloqueada.
-3. O aluno retorna ao curso para revisar o conteúdo.
-4. Após concluir a revisão, uma nova tentativa da prova final é liberada.
-
-Esse fluxo evita que o aluno refaça a prova imediatamente sem retornar ao conteúdo do curso.
-
----
-
-### Certificados
-
-- Certificado emitido automaticamente após aprovação na prova final
-- Tela de certificados do aluno
-- Modal para visualização do certificado
-- Download do certificado em PDF
-- Código de validação
-- Validade de 1 ano
-- Certificados aparecem apenas para cursos aprovados
-
----
-
-### Interface Web
-
-- Dashboard
-- Tela inicial
-- Meus Cursos
-- Visualização do curso
-- Player/área de aula
-- Quizzes
-- Prova final
-- Revisão de curso
-- Certificados
-- Gerenciamento de usuários
-- Gerenciamento de dispositivos
-- Criação de cursos
-- Dark mode
-- Interface responsiva
+A API é responsável por autenticação, controle de usuários, cursos, módulos, aulas, quizzes, prova final, certificados, dispositivos, documentação técnica, vínculo de clientes com dispositivos e integração com o agente de IA.
 
 ---
 
 ## Tecnologias Utilizadas
 
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- TailwindCSS
-- React Router DOM
-- Axios
-- Lucide React
-- React Hot Toast
-
-### Backend
-
 - Node.js
 - Express
 - TypeScript
 - MySQL
+- MySQL2
 - JWT
 - Bcrypt
-- Resend
+- Dotenv
+- CORS
 - Multer
-- PDF generation/download
-
-### Banco de Dados
-
-- MySQL
-- MySQL Workbench
+- PDF Parse
+- Axios
 
 ---
 
-## Estrutura Geral do Projeto
+## Funcionalidades do Backend
+
+### Autenticação
+
+- Cadastro de usuários
+- Login com JWT
+- Refresh token
+- Logout
+- Recuperação de senha
+- Redefinição de senha
+- Controle de acesso por perfil
+
+### Perfis de Usuário
+
+O sistema trabalha com três perfis principais:
+
+- `admin`: gerencia usuários, cursos, dispositivos, avaliações, documentos, relatórios e IA.
+- `student`: acessa cursos publicados, realiza aulas, quizzes, prova final e recebe certificados.
+- `client`: acessa dispositivos vinculados, documentação técnica e suporte IA.
+
+### Cursos
+
+- Criação de cursos
+- Edição de cursos
+- Controle de publicação
+- Status:
+  - `rascunho`
+  - `publicado`
+  - `arquivado`
+- Associação de cursos com dispositivos
+- Listagem de cursos por perfil
+- Alunos visualizam apenas cursos publicados
+- Administradores visualizam cursos publicados, rascunhos e arquivados
+
+### Módulos e Aulas
+
+- Cadastro de módulos
+- Cadastro de aulas
+- Ordenação de módulos e aulas
+- Conteúdo textual
+- Link de vídeo
+- Material complementar
+- Controle de conclusão de aulas
+- Progresso individual por aluno
+
+### Quizzes e Avaliações
+
+- Quiz por módulo
+- Prova final
+- Cadastro de perguntas
+- Cadastro de alternativas
+- Indicação da alternativa correta
+- Nota mínima
+- Número máximo de tentativas
+- Sorteio de questões por tentativa
+- Correção automática
+- Controle de tentativas
+
+### Fluxo de Revisão
+
+Quando o aluno não atinge a nota mínima na prova final:
+
+1. O curso entra em revisão.
+2. A prova final fica bloqueada.
+3. O aluno precisa revisar o conteúdo.
+4. Após concluir a revisão, uma nova tentativa é liberada.
+
+### Certificados
+
+- Emissão automática após aprovação na prova final
+- Código de validação
+- Download em PDF
+- Validade de 1 ano
+- Certificado vinculado ao aluno e ao curso
+
+### Dispositivos
+
+- Cadastro de dispositivos IoT
+- Edição de dispositivos
+- Exclusão de dispositivos
+- Imagem do dispositivo
+- Tipo/categoria
+- Descrição técnica
+- Vínculo de dispositivos com cursos
+- Vínculo de dispositivos com clientes
+
+### Área do Cliente
+
+- Cliente visualiza apenas dispositivos vinculados a ele
+- Cliente acessa detalhes do dispositivo
+- Cliente acessa documentação técnica do dispositivo
+- Cliente baixa PDFs vinculados ao dispositivo
+- Cliente acessa suporte IA
+
+### IA Técnica
+
+- Cadastro de prompts da IA
+- Upload de documentos técnicos por dispositivo
+- Processamento de PDF em chunks
+- Consulta de base técnica por dispositivo
+- Integração com serviço externo de IA
+- Registro de conversas e mensagens
+
+### Relatórios Administrativos
+
+- Total de alunos
+- Total de clientes
+- Total de cursos
+- Cursos publicados
+- Matrículas
+- Certificados emitidos
+- Média de quizzes
+- Dados para gráficos no painel administrativo
+
+---
+
+## Estrutura de Pastas
 
 ```txt
-sirros-academy/
+backend/
 │
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── types/
-│   │   ├── routes/
-│   │   └── main.tsx
-│   │
-│   ├── package.json
-│   └── vite.config.ts
+├── src/
+│   ├── controllers/
+│   ├── services/
+│   ├── repositories/
+│   ├── routes/
+│   ├── middlewares/
+│   ├── database/
+│   ├── utils/
+│   └── server.ts
 │
-├── backend/
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── services/
-│   │   ├── repositories/
-│   │   ├── routes/
-│   │   ├── middlewares/
-│   │   ├── database/
-│   │   └── server.ts
-│   │
-│   ├── package.json
-│   └── tsconfig.json
+├── uploads/
+│   └── ai-documents/
 │
+├── package.json
+├── tsconfig.json
+├── .env
 └── README.md
+```
 
-Como Rodar o Projeto Localmente
-Pré-requisitos
+---
 
-Antes de iniciar, é necessário ter instalado:
+## Pré-requisitos
 
-Node.js
-npm
-MySQL
-MySQL Workbench ou outro gerenciador de banco
-Git
-1. Clonar o Repositório
-git clone https://github.com/seu-usuario/seu-repositorio.git
-cd seu-repositorio
-2. Configurar o Backend
+Antes de rodar o backend, tenha instalado:
+
+- Node.js
+- npm
+- MySQL
+- MySQL Workbench ou outro gerenciador de banco
+- Git
+
+---
+
+## Instalação
 
 Entre na pasta do backend:
 
+```bash
 cd backend
+```
 
 Instale as dependências:
 
+```bash
 npm install
+```
 
-Crie um arquivo .env na raiz do backend:
+---
 
+## Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz da pasta `backend`:
+
+```env
 PORT=3333
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=sua_senha
+DB_NAME=lms
 
 JWT_SECRET=sua_chave_jwt
 JWT_REFRESH_SECRET=sua_chave_refresh
 
 RESEND_API_KEY=sua_chave_resend
 
-DATABASE_HOST=localhost
-DATABASE_USER=root
-DATABASE_PASSWORD=sua_senha
-DATABASE_NAME=lms
+AI_API_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:5173
+```
 
-Ajuste os nomes das variáveis conforme o arquivo de conexão do projeto.
+Ajuste os nomes das variáveis de acordo com o arquivo de conexão do projeto, caso estejam diferentes.
 
-Inicie o servidor:
+---
 
+## Banco de Dados
+
+O banco utilizado é MySQL.
+
+Arquivo principal recomendado:
+
+```txt
+database/lms_schema_organizado.sql
+```
+
+Para criar o banco, execute o script SQL no MySQL Workbench.
+
+O banco principal utilizado pelo projeto é:
+
+```sql
+lms
+```
+
+---
+
+## Principais Tabelas
+
+### Usuários e Autenticação
+
+- `users`
+- `refresh_tokens`
+- `password_resets`
+
+### Cursos e Conteúdo
+
+- `cursos`
+- `modulos`
+- `aulas`
+- `matriculas`
+- `progresso_aulas`
+- `curso_dispositivos`
+
+### Avaliações
+
+- `quizzes`
+- `quiz_questoes`
+- `quiz_opcoes`
+- `quiz_tentativas`
+- `quiz_tentativa_questoes`
+- `respostas_quiz`
+- `curso_tentativas`
+
+### Certificados
+
+- `certificados`
+
+### Dispositivos
+
+- `dispositivos`
+- `cliente_dispositivos`
+
+### IA e Documentação Técnica
+
+- `ai_prompts`
+- `dispositivo_documentos`
+- `ai_document_chunks`
+- `ai_conversas`
+- `ai_mensagens`
+
+---
+
+## Rodando o Backend
+
+Para iniciar o servidor em modo desenvolvimento:
+
+```bash
 npm run dev
+```
 
 O backend ficará disponível em:
 
+```txt
 http://localhost:3333
-3. Configurar o Frontend
+```
 
-Em outro terminal, entre na pasta do frontend:
+---
 
-cd frontend
+## Serviço de IA
 
-Instale as dependências:
+O backend se comunica com um serviço externo de IA pela variável:
 
-npm install
+```env
+AI_API_URL=http://localhost:8000
+```
 
-Crie um arquivo .env na raiz do frontend, caso o projeto utilize variável para a API:
+Para que o suporte IA funcione corretamente, o serviço de IA também precisa estar rodando.
 
-VITE_API_URL=http://localhost:3333
+Exemplo:
 
-Inicie o frontend:
+```bash
+cd agente-ia
+uvicorn app.main:app --reload --port 8000
+```
 
-npm run dev
+---
 
-O frontend ficará disponível em:
+## Rotas Principais
 
-http://localhost:5173
-Banco de Dados
+### Autenticação
 
-O banco de dados utilizado é MySQL.
-
-Principais tabelas do sistema:
-
-users
-refresh_tokens
-password_resets
-
-cursos
-modulos
-aulas
-matriculas
-progresso_aulas
-
-dispositivos
-curso_dispositivos
-
-quizzes
-quiz_questoes
-quiz_opcoes
-quiz_tentativas
-quiz_tentativa_questoes
-respostas_quiz
-
-curso_tentativas
-certificados
-Status dos Cursos
-
-A tabela cursos possui controle de publicação:
-
-rascunho
-publicado
-arquivado
-
-Regras:
-
-Administradores visualizam cursos publicados, rascunhos e arquivados.
-Alunos visualizam somente cursos publicados.
-Cursos em rascunho não aparecem para alunos.
-Status da Jornada do Aluno no Curso
-
-O sistema controla o status do aluno dentro do curso por meio das tentativas.
-
-Status possíveis:
-
-em_andamento
-em_revisao
-reprovado
-aprovado
-bloqueado
-
-Fluxo:
-
-Aluno acessa curso publicado
-↓
-Conclui aulas
-↓
-Realiza quizzes dos módulos
-↓
-Realiza prova final
-↓
-Se aprovado, certificado é emitido
-↓
-Se reprovado, curso entra em revisão
-↓
-Após revisão, nova tentativa é liberada
-Principais Rotas da API
-Autenticação
+```http
 POST /auth/register
 POST /auth/login
 POST /auth/refresh
 POST /auth/logout
 POST /auth/forgot-password
 POST /auth/reset-password
-Usuários
+```
+
+### Usuários
+
+```http
 GET /users
 GET /users/:id
 PUT /users/:id
 DELETE /users/:id
-Cursos
+PATCH /admin/users/:userId/role
+```
+
+### Cursos
+
+```http
 GET /courses
 GET /courses/:id
 GET /courses/:courseId/content
 POST /courses
 PUT /courses/:id
 DELETE /courses/:id
-Revisão de Curso
-GET /courses/:courseId/review/status
-POST /courses/:courseId/review/complete
-Quizzes e Prova Final
+PATCH /admin/courses/:courseId
+PATCH /admin/courses/:courseId/status
+```
+
+### Módulos e Aulas
+
+```http
+GET /admin/courses/:courseId/aulas
+POST /modules
+PATCH /modules/:moduleId
+DELETE /modules/:moduleId
+POST /lessons
+PATCH /lessons/:lessonId
+DELETE /lessons/:lessonId
+```
+
+### Quizzes e Prova Final
+
+```http
+POST /quizzes
+GET /quizzes/:quizId
 GET /courses/:courseId/quizzes
+PUT /quizzes/:quizId
+DELETE /quizzes/:quizId
 POST /quizzes/:quizId/start
 GET /quizzes/attempts/:attemptId/questions
 POST /quizzes/:quizId/submit
-Certificados
+```
+
+### Revisão de Curso
+
+```http
+GET /courses/:courseId/review/status
+POST /courses/:courseId/review/complete
+```
+
+### Certificados
+
+```http
 GET /certificates
-GET /certificates/:id
-GET /certificates/:id/pdf
-Dispositivos
+GET /certificates/:certificateId
+GET /certificates/:certificateId/pdf
+```
+
+### Dispositivos
+
+```http
 GET /devices
 GET /devices/:id
 POST /devices
-PUT /devices/:id
-DELETE /devices/:id
-Exemplo de Retorno da Listagem de Cursos
-[
-  {
-    "id": 16,
-    "titulo": "Treinamento Técnico: Dispositivo IoT Sirros S1",
-    "descricao": "Curso completo sobre a instalação, configuração e operação do dispositivo IoT S1.",
-    "thumbnail": "https://imagem-do-dispositivo.png",
-    "criado_por": 1,
-    "criado_em": "2026-07-16T00:00:00.000Z",
-    "curso_publicacao_status": "publicado",
-    "criador": "Lennon",
-    "total_aulas": 6,
-    "aulas_concluidas": 0,
-    "progresso": 0,
-    "curso_status": "sem_tentativa"
-  }
-]
-Regras da Capa do Curso
+PATCH /admin/devices/:deviceId
+DELETE /admin/devices/:deviceId
+```
 
-A imagem exibida no card do curso segue esta ordem:
+### Cliente e Dispositivos
 
-Se o curso possuir thumbnail, usa a thumbnail do curso.
-Se não possuir thumbnail, usa a imagem do dispositivo vinculado.
-Se não houver imagem disponível, o frontend exibe uma capa padrão.
-Funcionalidades Implementadas no Frontend
-Login
-Cadastro
-Recuperação de senha
-Dashboard
-Home
-Meus Cursos
-Visualização de curso
-Conclusão de aulas
-Quizzes
-Prova final
-Fluxo de revisão
-Certificados
-Download de certificado
-Dispositivos
-Suporte IA na interface
-Administração de usuários
-Criação de cursos
-Dark mode
-Layout responsivo
-Funcionalidades Implementadas no Backend
-Autenticação com JWT
-Refresh token
-Logout
-Recuperação de senha
-CRUD de usuários
-CRUD de cursos
-Controle de publicação de cursos
-Controle de permissões por perfil
-Cadastro e vínculo de dispositivos
-Progresso individual por aluno
-Controle de aulas concluídas
-Quizzes
-Prova final
-Tentativas
-Correção automática
-Fluxo de revisão
-Emissão de certificados
-Download de certificados em PDF
-Integração com MySQL
-Diferenciais do Projeto
-Treinamento técnico voltado para dispositivos IoT reais
-Controle de progresso individual por aluno
-Separação entre cursos publicados e rascunhos
-Imagem automática do dispositivo como capa do curso
-Fluxo de revisão após reprovação na prova final
-Certificado com validade e código de validação
-Interface moderna com suporte a modo claro e escuro
-Estrutura separada em frontend e backend
-Status do Projeto
+```http
+GET /client/devices
+GET /client/devices/:deviceId
+GET /client/devices/:deviceId/documents
+GET /client/device-documents/:documentId/download
+```
 
-O projeto está em fase de MVP funcional.
+### Vínculo Cliente/Dispositivo
 
-Funcionalidades principais já implementadas:
+```http
+GET /admin/clients/:clientId/devices
+POST /admin/clients/:clientId/devices/:deviceId
+DELETE /admin/clients/:clientId/devices/:deviceId
+```
 
-autenticação
-cursos
-aulas
-progresso
-dispositivos
-quizzes
-prova final
-revisão
-certificados
-controle por perfil
+### IA Técnica
 
-Melhorias futuras previstas:
+```http
+GET /admin/ai/summary
+GET /admin/ai/prompts
+POST /admin/ai/prompts
+PATCH /admin/ai/prompts/:promptId
 
-revisão mais detalhada por módulo
-relatórios administrativos
-métricas de desempenho
-histórico completo de tentativas
-validação pública de certificados
-melhorias na área de suporte inteligente
-maior controle de matrícula por cliente ou turma
-Autor
+GET /admin/ai/devices
+GET /admin/devices/:deviceId/documents
+POST /admin/devices/:deviceId/documents
+POST /admin/device-documents/:documentId/process
+DELETE /admin/device-documents/:documentId
 
-Desenvolvido por Lennon Costa Ferreira.
+POST /client/ai/chat
+GET /client/ai/conversations
+GET /client/ai/conversations/:conversationId
+```
+
+### Relatórios
+
+```http
+GET /admin/reports
+```
+
+---
+
+## Regras de Acesso
+
+### Admin
+
+Pode:
+
+- Gerenciar usuários
+- Gerenciar cursos
+- Gerenciar dispositivos
+- Vincular dispositivos a clientes
+- Criar módulos e aulas
+- Criar quizzes e prova final
+- Publicar, arquivar e editar cursos
+- Enviar documentação técnica
+- Processar PDFs para a IA
+- Visualizar relatórios
+
+### Student
+
+Pode:
+
+- Visualizar cursos publicados
+- Iniciar cursos
+- Concluir aulas
+- Responder quizzes
+- Realizar prova final
+- Revisar curso após reprovação
+- Baixar certificados
+
+### Client
+
+Pode:
+
+- Visualizar dispositivos vinculados
+- Ver detalhes do dispositivo
+- Acessar documentação técnica
+- Baixar PDFs técnicos
+- Usar suporte IA
+
+---
+
+## Upload de Documentos Técnicos
+
+Os documentos técnicos são enviados pelo administrador e vinculados a um dispositivo.
+
+Fluxo:
+
+```txt
+Admin faz upload do PDF
+↓
+Documento é salvo em dispositivo_documentos
+↓
+PDF é processado
+↓
+Conteúdo é dividido em chunks
+↓
+Chunks são salvos em ai_document_chunks
+↓
+Cliente pode consultar documentação e suporte IA
+```
+
+---
+
+## Segurança
+
+- Rotas protegidas por JWT
+- Controle de acesso por role
+- Cliente só acessa dispositivos vinculados a ele
+- Cliente só baixa documentos de dispositivos vinculados a ele
+- Admin possui acesso às áreas administrativas
+- Refresh tokens armazenados no banco
+- Senhas criptografadas com Bcrypt
+
+---
+
+## Scripts Úteis
+
+Instalar dependências:
+
+```bash
+npm install
+```
+
+Rodar em desenvolvimento:
+
+```bash
+npm run dev
+```
+
+Gerar build:
+
+```bash
+npm run build
+```
+
+Rodar build:
+
+```bash
+npm start
+```
+
+---
+
+## Status do Projeto
+
+O backend está em fase de MVP funcional.
+
+Funcionalidades principais implementadas:
+
+- Autenticação
+- Controle por perfil
+- Cursos
+- Módulos
+- Aulas
+- Quizzes
+- Prova final
+- Fluxo de revisão
+- Certificados
+- Dispositivos
+- Vínculo cliente/dispositivo
+- Documentação técnica
+- Suporte IA
+- Relatórios administrativos
+
+---
+
+## Melhorias Futuras
+
+- Exportação de relatórios
+- Histórico completo de conversas da IA no painel admin
+- Administração avançada de certificados
+- Validação pública de certificados
+- Controle de turmas
+- Métricas avançadas de desempenho
+- Melhorias no painel de suporte técnico
+
+---
+
+## Autor
+
+Desenvolvido por **Lennon Costa Ferreira**.

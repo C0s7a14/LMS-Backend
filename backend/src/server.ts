@@ -25,6 +25,8 @@ import clientDeviceRoutes from "./routes/clientDeviceRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
 import adminCourseStatusRoutes from "./routes/adminCourseStatusRoutes.js";
 import adminCourseEditRoutes from "./routes/adminCourseEditRoutes.js";
+import adminReportRoutes from "./routes/adminReportRoutes.js";
+import adminDeviceRoutes from "./routes/adminDeviceRoutes.js";
 
 
 
@@ -66,6 +68,8 @@ app.use(clientDeviceRoutes);
 app.use(adminUserRoutes);
 app.use(adminCourseStatusRoutes);
 app.use(adminCourseEditRoutes);
+app.use(adminReportRoutes);
+app.use(adminDeviceRoutes);
 
 app.use(errorMiddleware);
 

@@ -1,76 +1,26 @@
 import { Request, Response } from "express";
-
 import {
+  getAdminClientDevicesService,
+  getClientDeviceDetailsService,
+  getClientDeviceDocumentDownloadService,
   getClientDevicesService,
   linkDeviceToClientService,
+  listClientDeviceDocumentsService,
   unlinkDeviceFromClientService,
 } from "../services/clientDeviceService.js";
 
-export async function getClientDevicesController(
-  req: Request,
-  res: Response
-) {
+export async function getClientDevicesController(req: Request, res: Response) {
   try {
-    const userId = req.user?.id;
+    const clientId = Number((req as any).user.id);
 
-    if (!userId) {
-      return res.status(401).json({
-        message: "Usuário não autenticado.",
-      });
-    }
+    const devices = await getClientDevicesService(clientId);
 
-    const devices = await getClientDevicesService(userId);
-
-    return res.json(devices);
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      message: "Erro ao buscar dispositivos do cliente.",
-    });
-  }
-}
-
-export async function linkDeviceToClientController(
-  req: Request,
-  res: Response
-) {
-  try {
-    const { clientId, deviceId } = req.params;
-
-    const result = await linkDeviceToClientService(
-      Number(clientId),
-      Number(deviceId)
-    );
-
-    return res.status(201).json(result);
+    return res.status(200).json(devices);
   } catch (error: any) {
     console.log(error);
 
     return res.status(400).json({
-      message: error.message || "Erro ao vincular dispositivo ao cliente.",
-    });
-  }
-}
-
-export async function unlinkDeviceFromClientController(
-  req: Request,
-  res: Response
-) {
-  try {
-    const { clientId, deviceId } = req.params;
-
-    const result = await unlinkDeviceFromClientService(
-      Number(clientId),
-      Number(deviceId)
-    );
-
-    return res.json(result);
-  } catch (error: any) {
-    console.log(error);
-
-    return res.status(400).json({
-      message: error.message || "Erro ao remover dispositivo do cliente.",
+      error: error.message || "Erro ao carregar dispositivos.",
     });
   }
 }
@@ -80,22 +30,122 @@ export async function getAdminClientDevicesController(
   res: Response
 ) {
   try {
-    const { clientId } = req.params;
+    const clientId = Number(req.params.clientId);
 
-    if (!clientId) {
-      return res.status(400).json({
-        message: "Cliente não informado.",
-      });
-    }
+    const devices = await getAdminClientDevicesService(clientId);
 
-    const devices = await getClientDevicesService(Number(clientId));
-
-    return res.json(devices);
-  } catch (error) {
+    return res.status(200).json(devices);
+  } catch (error: any) {
     console.log(error);
 
-    return res.status(500).json({
-      message: "Erro ao buscar dispositivos do cliente.",
+    return res.status(400).json({
+      error: error.message || "Erro ao carregar dispositivos do cliente.",
+    });
+  }
+}
+
+export async function linkDeviceToClientController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const clientId = Number(req.params.clientId);
+    const deviceId = Number(req.params.deviceId);
+
+    const result = await linkDeviceToClientService(clientId, deviceId);
+
+    return res.status(201).json(result);
+  } catch (error: any) {
+    console.log(error);
+
+    return res.status(400).json({
+      error: error.message || "Erro ao vincular dispositivo ao cliente.",
+    });
+  }
+}
+
+export async function unlinkDeviceFromClientController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const clientId = Number(req.params.clientId);
+    const deviceId = Number(req.params.deviceId);
+
+    const result = await unlinkDeviceFromClientService(clientId, deviceId);
+
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.log(error);
+
+    return res.status(400).json({
+      error: error.message || "Erro ao remover dispositivo do cliente.",
+    });
+  }
+}
+
+export async function getClientDeviceDetailsController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const clientId = Number((req as any).user.id);
+    const deviceId = Number(req.params.deviceId);
+
+    const device = await getClientDeviceDetailsService(clientId, deviceId);
+
+    return res.status(200).json(device);
+  } catch (error: any) {
+    console.log(error);
+
+    return res.status(400).json({
+      error: error.message || "Erro ao carregar dispositivo.",
+    });
+  }
+}
+
+export async function listClientDeviceDocumentsController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const clientId = Number((req as any).user.id);
+    const deviceId = Number(req.params.deviceId);
+
+    const documents = await listClientDeviceDocumentsService(clientId, deviceId);
+
+    return res.status(200).json(documents);
+  } catch (error: any) {
+    console.log(error);
+
+    return res.status(400).json({
+      error: error.message || "Erro ao carregar documentos do dispositivo.",
+    });
+  }
+}
+
+export async function downloadClientDeviceDocumentController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const clientId = Number((req as any).user.id);
+    const documentId = Number(req.params.documentId);
+
+    const { document, filePath } = await getClientDeviceDocumentDownloadService(
+      clientId,
+      documentId
+    );
+
+   return res.download(
+  filePath,
+  document.nome_arquivo_original || document.titulo || "documento.pdf"
+);
+  } catch (error: any) {
+    console.log(error);
+
+    return res.status(400).json({
+      error: error.message || "Erro ao baixar documento.",
     });
   }
 }

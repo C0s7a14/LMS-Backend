@@ -8,6 +8,9 @@ import {
   linkDeviceToClientController,
   unlinkDeviceFromClientController,
   getAdminClientDevicesController,
+  downloadClientDeviceDocumentController,
+  getClientDeviceDetailsController,
+  listClientDeviceDocumentsController
 } from "../controllers/clientDeviceController.js";
 
 const router = Router();
@@ -24,6 +27,27 @@ router.get(
   authMiddleware,
   roleMiddleware(["admin"]),
   getAdminClientDevicesController
+);
+
+router.get(
+  "/client/devices/:deviceId",
+  authMiddleware,
+  roleMiddleware(["client"]),
+  getClientDeviceDetailsController
+);
+
+router.get(
+  "/client/devices/:deviceId/documents",
+  authMiddleware,
+  roleMiddleware(["client"]),
+  listClientDeviceDocumentsController
+);
+
+router.get(
+  "/client/device-documents/:documentId/download",
+  authMiddleware,
+  roleMiddleware(["client"]),
+  downloadClientDeviceDocumentController
 );
 
 router.post(

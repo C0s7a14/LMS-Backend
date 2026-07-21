@@ -39,8 +39,7 @@ export async function deleteRefreshToken(
     token: string
 ){
 
-    console.log("DELETE TOKEN:");
-    console.log(token);
+    
 
     if (!token) {
         throw new Error("TOKEN UNDEFINED");

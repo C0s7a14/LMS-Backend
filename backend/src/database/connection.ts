@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-console.log(process.env.DB_USER);
+
 
 
 export const pool = mysql.createPool({

@@ -49,15 +49,38 @@ export async function getDevicesRepository() {
   const [rows]: any = await pool.execute(
     `
     SELECT
-      id,
-      nome,
-      modelo,
-      tipo,
-      descricao,
-      imagem_url,
-      criado_em
-    FROM dispositivos
-    ORDER BY id DESC
+      d.id,
+      d.nome,
+      d.modelo,
+      d.tipo,
+      d.descricao,
+      d.imagem_url,
+      d.criado_em,
+
+      (
+        SELECT c.id
+        FROM curso_dispositivos cd
+        INNER JOIN cursos c
+          ON c.id = cd.curso_id
+        WHERE cd.dispositivo_id = d.id
+          AND c.status = 'publicado'
+        ORDER BY c.id DESC
+        LIMIT 1
+      ) AS course_id,
+
+      (
+        SELECT c.titulo
+        FROM curso_dispositivos cd
+        INNER JOIN cursos c
+          ON c.id = cd.curso_id
+        WHERE cd.dispositivo_id = d.id
+          AND c.status = 'publicado'
+        ORDER BY c.id DESC
+        LIMIT 1
+      ) AS course_title
+
+    FROM dispositivos d
+    ORDER BY d.id DESC
     `
   );
 

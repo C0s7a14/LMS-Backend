@@ -12,7 +12,7 @@ interface RegisterDTO {
   name: string;
   email: string;
   senha: string;
-  role?: "student" | "cliente" | "admin";
+  role?: "student" | "client" | "admin";
 }
 
 export async function registerService(data: RegisterDTO) {
@@ -44,7 +44,7 @@ export async function loginService(data: LoginDTO) {
   const user = await findUserByEmail(data.email);
 
   if (!user) {
-    throw new Error("Usuário não encontrado");
+   throw new Error("E-mail não encontrado");
   }
 
   const passwordMatch = await bcrypt.compare(
@@ -70,6 +70,7 @@ export async function loginService(data: LoginDTO) {
 const refreshToken = jwt.sign(
   {
     id: user.id,
+    role: user.role,
   },
   process.env.JWT_REFRESH_SECRET as string,
   {
@@ -111,7 +112,7 @@ export async function refreshTokenService(
 ){
     if (!refreshToken){
         throw new Error(
-            "Refresh token obrigatorio"
+            "Refresh token obrigatório"
         );
     }
 
@@ -121,7 +122,7 @@ export async function refreshTokenService(
 
     if(!tokenExists){
         throw new Error(
-            "Refresh token invalido"
+            "Refresh token inválido"
         );
     }
 
@@ -133,14 +134,15 @@ export async function refreshTokenService(
 
 
     const accessToken = jwt.sign(
-        {
-            id: decoded.id,
-        },
-        process.env.JWT_SECRET as string,
-        {
-            expiresIn: "15m"
-        }
-    );
+  {
+    id: decoded.id,
+    role: decoded.role,
+  },
+  process.env.JWT_SECRET as string,
+  {
+    expiresIn: "15m",
+  }
+);
 
     return{
         accessToken,
@@ -151,8 +153,7 @@ export async function logoutService(
   refreshToken: string
 ) {
 
-  console.log("SERVICE TOKEN:");
-  console.log(refreshToken);
+  
 
   if (!refreshToken) {
     throw new Error(

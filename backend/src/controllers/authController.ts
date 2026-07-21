@@ -36,26 +36,31 @@ export async function registerController(
   }
 }
 
-export async function loginController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+export async function loginController(req: Request, res: Response) {
   try {
-    const { email, senha } = req.body;
+    const result = await loginService(req.body);
 
-    if (!email || !senha) {
-      throw new AppError("Email e senha são obrigatórios", 400);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    const message = error.message || "Erro ao fazer login.";
+
+    if (
+      message === "Usuário não encontrado" ||
+      message === "Senha inválida" ||
+      message === "E-mail não encontrado"
+    ) {
+      console.log(`Login recusado: ${message}`);
+
+      return res.status(401).json({
+        error: message,
+      });
     }
 
-    const result = await loginService({
-      email,
-      senha,
-    });
+    console.error("Erro inesperado no login:", message);
 
-    return res.json(result);
-  } catch (error) {
-    next(error);
+    return res.status(500).json({
+      error: "Erro interno no servidor.",
+    });
   }
 }
 
@@ -79,28 +84,16 @@ export async function refreshController(
   }
 }
 
-export async function logoutController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  console.log("LOGOUT CONTROLLER");
-
+export async function logoutController(req: Request, res: Response) {
   try {
-    console.log(req.body);
-
     const { refreshToken } = req.body;
-
-    console.log(refreshToken);
-
-    if (!refreshToken) {
-      throw new AppError("Refresh token não enviado", 400);
-    }
 
     const result = await logoutService(refreshToken);
 
-    return res.json(result);
-  } catch (error) {
-    next(error);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(400).json({
+      error: error.message || "Erro ao fazer logout.",
+    });
   }
 }

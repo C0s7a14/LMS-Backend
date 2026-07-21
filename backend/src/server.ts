@@ -32,7 +32,7 @@ import adminDeviceRoutes from "./routes/adminDeviceRoutes.js";
 
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 
-console.log("SERVER CERTO");
+
 
 const app = express();
 
@@ -76,5 +76,5 @@ app.use(errorMiddleware);
 const PORT = process.env.PORT || 3333;
 
 app.listen(PORT, () => {
-  console.log(`Server rodando na porta ${PORT}`);
+  console.log(`API rodando em http://localhost:${PORT}`);
 });
